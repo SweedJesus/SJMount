@@ -4,6 +4,7 @@
 ## Title: SJmount
 ## Notes: Simple automated mounting addon
 ## SavedVariables:
-## SavedVariablesPerCharacter: SJmount
+## SavedVariablesPerCharacter: SJmount_MountList
 
-SJmount.lua
+SJmount_MountList.lua
+SJmount_Core.lua

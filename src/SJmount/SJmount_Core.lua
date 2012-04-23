@@ -1,21 +1,23 @@
 
 local NUM_MOUNTS = GetNumCompanions(MOUNT)
 
-local function SJmount_Init()
-	if not SJmount_MountList then
-		SJmount_MountList_Init()
-	end
+SJmount_MountList = SJmount_MountList or nil
+
+function SJmount_OnLoad()
 end
 
-local function SJmount_HasListChanged()
-	if #SJmount_MountList == NUM_MOUNTS then
-		return false
+function SJmount_Init()
+	if SJmount_MountList then
+		if #SJmount_MountList == NUM_MOUNTS then
+			SJmount_MountList_Update()
+		end
 	else
-		return true
+		SJmount_MountList_Init()
+		SJmount_Init()
 	end
 end
 
-local function SJmount_GetList()
+function SJmount_MountList_Update()
 	for i = 1, NUM_MOUNTS do
 		local
 		creatureID,		-- Unique ID of the companion
@@ -30,10 +32,52 @@ local function SJmount_GetList()
 			-- 0x08 : Usable underwater
 			-- 0x10 : Can jump
 		= GetCompanionInfo(MOUNT, i)
+		SJmount_MountList[spellID] = true
+
+
+
+		--[[
+		if (mountFlag % 0x02) == 0 then			-- Flying mount
+			mountFlag = mountFlag - 0x02
+			if (mountFlag % 0x10) == 0 then			-- Can jump
+				mountFlag = mountFlag - 0x10
+				if (mountFlag % 0x08) == 0 then			-- Usable underwater
+				else									-- Unusable underwater
+					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
+					else									-- Unusable at the water's surface
+					end
+				end
+			else									-- Can't jump
+				if (mountFlag % 0x08) == 0 then			-- Usable underwater
+				else									-- Unusable underwater
+					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
+					else									-- Unusable at the water's surface
+					end
+				end
+			end
+		else									-- Ground mount
+			if (mountFlag % 0x10) == 0 then			-- Can jump
+				mountFlag = mountFlag - 0x10
+				if (mountFlag % 0x08) == 0 then			-- Usable underwater
+				else									-- Unusable underwater
+					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
+					else									-- Unusable at the water's surface
+					end
+				end
+			else									-- Can't jump
+				if (mountFlag % 0x08) == 0 then			-- Usable underwater
+				else									-- Unusable underwater
+					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
+					else									-- Unusable at the water's surface
+					end
+				end
+			end
+		end
+		--]]
 	end
 end
 
-local function SJmount_MountList_Init()
+function SJmount_MountList_Init()
 	SJmount_MountList = {}
 	SJmount_MountList["EPIC_GROUND"] = {
 		[92155] = false, -- Ultramarine Qiraji Battle Tank
@@ -319,6 +363,7 @@ local function SJmount_MountList_Init()
 		[40120] = false, -- Druid Swift Flight Form
 	}
 	SJmount_MountList["REGULAR_FLYING"] = {
+		-- REGULAR FLYING MOUNTS
 		[32243] = false, -- Tawny Wind Rider
 		[32244] = false, -- Blue Wind Rider
 		[32239] = false, -- Ebon Gryphon
@@ -329,8 +374,8 @@ local function SJmount_MountList_Init()
 		[32240] = false, -- Snowy Gryphon
 		[46197] = false, -- X-51 Nether-Rocket
 		[33943] = false, -- Druid Flight Form
-	}
-	SJmount_MountList["WATER"] = {
+
+		-- WATER MOUNTS
 		[64731] = false, -- Sea Turtle
 		[75207] = false, -- Abyssal Seahorse
 	}

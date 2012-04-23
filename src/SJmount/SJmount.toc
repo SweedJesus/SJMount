@@ -1,0 +1,9 @@
+## Interface: 40300
+## Author: SweedJesus
+## Version: 0.01
+## Title: SJmount
+## Notes: Simple automated mounting addon
+## SavedVariables:
+## SavedVariablesPerCharacter: SJmount
+
+SJmount.lua

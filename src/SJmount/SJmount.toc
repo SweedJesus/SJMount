@@ -6,5 +6,5 @@
 ## SavedVariables:
 ## SavedVariablesPerCharacter: SJmount_MountList
 
-SJmount_MountList.lua
 SJmount_Core.lua
+SJMount_StaticMountList.lua

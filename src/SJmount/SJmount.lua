@@ -12,7 +12,7 @@ function SJmount_Init()
 	SJmount_StaticMountList = SJmount_StaticMountList or nil
 end
 
-function SJmount_UpdateLists()
+function SJmount_UpdateList()
 	for i = 1, NUM_MOUNTS do
 		local
 		creatureID,		-- Unique ID of the companion

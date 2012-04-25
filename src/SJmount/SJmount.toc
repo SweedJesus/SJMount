@@ -1,10 +1,12 @@
 ## Interface: 40300
 ## Author: SweedJesus
 ## Version: 0.01
+## X-FileNumber: r001
 ## Title: SJmount
 ## Notes: Simple automated mounting addon
 ## SavedVariables:
 ## SavedVariablesPerCharacter: SJmount_MountList
+## X-Github: www.github.com/SweedJesus/SJmount
 
 SJmount_Core.lua
 SJMount_StaticMountList.lua

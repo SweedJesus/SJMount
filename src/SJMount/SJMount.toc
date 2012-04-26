@@ -5,7 +5,7 @@
 ## Title: SJMount
 ## Notes: Simple automated mounting addon
 ## SavedVariables:
-## SavedVariablesPerCharacter: SJMount_MountList
+## SavedVariablesPerCharacter: SJMount_savedVariables
 ## X-Github: www.github.com/SweedJesus/SJMount
 
 SJMount.xml

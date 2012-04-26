@@ -1,12 +1,12 @@
 <Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.blizzard.com/wow/ui/">
-    <Script file="SJmount_Init.lua" />
-    <Frame name="SJmount" inherits="SecureFrameTemplate" hidden="true" parent="UIParent" toplevel="true" frameStrata="LOW">
+    <Script file="SJMount_Init.lua" />
+    <Frame name="SJMount" inherits="SecureFrameTemplate" hidden="true" parent="UIParent" toplevel="true" frameStrata="LOW">
         <Scripts>
             <OnLoad>
-                SJmount_OnLoad(self);
+                SJMount_OnLoad(self);
             </OnLoad>
             <OnEvent>
-                SJmount_OnEvent(self,event,arg1,arg2,arg3,arg4);
+                SJMount_OnEvent(self,event,arg1,arg2,arg3,arg4);
             </OnEvent>
         </Scripts>
     </Frame>

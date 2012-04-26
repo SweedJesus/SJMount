@@ -1,10 +1,51 @@
 
-SJMOUNT_NAME = GetAddOnMetadata("SJmount", "Title")
-SJMOUNT_VERSION = GetAddOnMetadata("SJmount", "Version")
-SJMOUNT_FILENUM = GetAddOnMetadata("SJmount", "X-FileNumber")
+SJMOUNT_NAME = GetAddOnMetadata("SJMount", "Title")
+SJMOUNT_VERSION = GetAddOnMetadata("SJMount", "Version")
+SJMOUNT_FILENUM = GetAddOnMetadata("SJMount", "X-FileNumber")
+
+SJMount_EventHandlers = {
+
+	--- ADDON_LOADED Event Handler:
+	-- Fires when an addon and its saved variables are loaded.
+	["ADDON_LOADED"] = function(frame, arg1)
+		if arg1 == SJMOUNT_NAME then
+			-- On AddOn loaded event code
+		end
+	end,
+
+	--- PLAYER_ENTERING_WORLD Event Handler:
+	-- Fired when the player enters the world, reloads the UI, enters/leaves an instance or battleground, or respawns at a graveyard.
+	-- Also fires any other time the player sees a loading screen.
+	["PLAYER_ENTERING_WORLD"] = function()
+		DEFAULT_CHAT_FRAME:AddMessage("|cffa9bacb<SJMount>|r File: SJMount_" .. SJMOUNT_FILENUM .. "|cffa9bacb by SweedJesus|r")
+	end,
+
+	--- LEARNED_SPELL_IN_TAB Event Handler:
+	["LEARNED_SPELL_IN_TAB"] = function()
+		SJMount_UpdateList()
+	end,
+
+	--- COMPANION_LEARNED Event Handler:
+	["COMPANION_LEARNED"] = function() end,
+
+	--- UNIT_AURA Event Handler:
+	["UNIT_AURA"] = function() end,
+
+	["ZONE_CHANGED"] = function()
+		SJMount_IsFlyableArea()
+	end,
+
+	--- ZONE_CHANGED_NEW_AREA Event Handler:
+	-- Fires when the player moves between major zones or enters/exits an instance.
+	["ZONE_CHANGED_NEW_AREA"] = function()
+		SJMount_IsFlyableArea()
+	end,
+	--- UPDATE_WORLD_STATES Event Handler:
+	["UPDATE_WORLD_STATES"] = function() end
+}
 
 --- OnLoad
-function SJmount_OnLoad(frame)
+function SJMount_OnLoad(frame)
 	-- Register Events
 	frame:RegisterEvent("ADDON_LOADED")
 	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -14,49 +55,17 @@ function SJmount_OnLoad(frame)
 	frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	frame:RegisterEvent("UPDATE_WORLD_STATES")
 	-- Slash Commands
-	SlashCmdList["SJmount"] = SJmount_SCommand
-	SLASH_SJmount1 = "/sjmount"
-	SLASH_SJmount2 = "/sjm"
-	SLASH_SJmount3 = "/mount"
+	SlashCmdList["SJMount"] = SJMount_SCommand
+	SLASH_SJMount1 = "/sjmount"
+	SLASH_SJMount2 = "/sjm"
+	SLASH_SJMount3 = "/mount"
 end
 
 --- OnEvent
-function SJmount_OnEvent(frame, event, ...)
-	if (event == "ADDON_LOADED") then
-		if (arg1 == "SJmount") then
-			-- On addon load code
-		end
-	elseif (event == "PLAYER_ENTERING_WORLD") then
-		ChatFrame1:AddMessage("")
-	end
-
-	-- GetZonePVPInfo() returns:
-		-- pvpType ("arena"/"combat"/"contested"/"friendly"/"hostile"/"nil"/"sanctuary")
-		-- isSubZonePVP (1 if the current area allows free-for-all PVP; otherwise nil)
-		-- factionName (Name of the faction that controls the zone [only applies if pvpType is friendly or hostile])
-	-- GetOutdoorPVPWaitTime() returns:
-		-- waitTime (The number of seconds until the next world PvP battle on the currently selected map starts)
-	-- GetWorldPVPAreaInfo(pvpMapID) arguments:
-		-- index (1 = Wintergrasp, 2 = Tol Barad)
-	-- returns:
-		-- pvpInfo (The PvP queue ID for the specified World PvP area)
-		-- localizedName (The localized name for the specified World PvP area)
-		-- isActive (Whether there is currently a battle in the specified World PvP area)
-		-- canQueue (Whether queueing for the specified World PvP area is currently available (15 minutes before the battle starts for WG/TB))
-		-- waitTime (The number of seconds until the next battle in the specified World PvP area starts (number))
-		-- canEnter (Whether the player has the required level to be eligible for the specified World PvP area [unconfirmed] (boolean) )
-	-- GetWorldPVPQueueStatus(index) arguments:
-		-- index (Index of the queue to get data for (between 1 and MAX_WORLD_PVP_QUEUES))
-	-- returns:
-		-- status (Returns the status of the players queue (string))
-			-- confirm - The player can enter the pvp zone
-			-- none - No world pvp queue at this index
-			-- queued - The player is queued for this pvp zone
-		-- mapName (mapName - Map name they are queued for (e.g Wintergrasp) (string) )
-		-- queueID (queueID - Queue ID, used for BattlefieldMgrExitRequest() and BattlefieldMgrEntryInviteResponse() (number) )
-
-	if (event == "LEARNED_SPELL_IN_TAB") or (event == "COMPANION_LEARNED") then
-		SJmount_UpdateList()
+function SJMount_OnEvent(frame, event, ...)
+	local handler = SJMount_EventHandlers[event]
+	if handler then
+		handler(frame, ...)
 	end
 end
 

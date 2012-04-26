@@ -1,6 +1,6 @@
 
 
-function SJmount_Init()
+function SJMount_Init()
 	SJMOUNT_NUM_MOUNTS = GetNumCompanions(MOUNT)	-- Number of mounts
 	SJMOUNT_LEVEL1 = "EPIC_GROUND"
 	SJMOUNT_LEVEL2 = "REGULAR_GROUND"
@@ -8,11 +8,11 @@ function SJmount_Init()
 	SJMOUNT_LEVEL4 = "REGULAR_FLYING"
 	SJMOUNT_LEVEL5 = "WATER"
 
-	SJmount_MountList = SJmount_MountList or nil
-	SJmount_StaticMountList = SJmount_StaticMountList or nil
+	SJMount_MountList = SJMount_MountList or nil
+	SJMount_StaticMountList = SJMount_StaticMountList or nil
 end
 
-function SJmount_UpdateList()
+function SJMount_UpdateList()
 	for i = 1, NUM_MOUNTS do
 		local
 		creatureID,		-- Unique ID of the companion
@@ -27,7 +27,7 @@ function SJmount_UpdateList()
 			-- 0x08 : Usable underwater
 			-- 0x10 : Can jump
 		= GetCompanionInfo(MOUNT, i)
-		SJmount_MountList[spellID] = true
+		SJMount_MountList[spellID] = true
 
 
 
@@ -69,5 +69,23 @@ function SJmount_UpdateList()
 			end
 		end
 		--]]
+	end
+end
+
+function SJMount_IsFlyableArea()
+	if IsFlyableArea() then
+		if "Wintergrasp" == GetRealZoneText() then
+			local _, _, isActive, _, _, _ = GetWorldPVPAreaInfo(1)
+			if isActive then
+				return false
+			end
+		elseif "Tol Barad" == GetRealZoneText() then
+			local _, _, isActive, _, _, _ = GetWorldPVPAreaInfo(2)
+			if isActive then
+				return false
+			end
+		else
+			return true
+		end
 	end
 end

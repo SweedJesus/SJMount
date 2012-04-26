@@ -47,13 +47,10 @@ SJMount_EventHandlers = {
 --- OnLoad
 function SJMount_OnLoad(frame)
 	-- Register Events
-	frame:RegisterEvent("ADDON_LOADED")
-	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-	frame:RegisterEvent("LEARNED_SPELL_IN_TAB")
-	frame:RegisterEvent("COMPANION_LEARNED")
-	frame:RegisterEvent("UNIT_AURA")
-	frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-	frame:RegisterEvent("UPDATE_WORLD_STATES")
+	for event in pairs(SJMount_EventHandlers) do
+		frame:RegisterEvent(event)
+	end
+
 	-- Slash Commands
 	SlashCmdList["SJMount"] = SJMount_SCommand
 	SLASH_SJMount1 = "/sjmount"

@@ -8,5 +8,6 @@
 ## SavedVariablesPerCharacter: SJMount_MountList
 ## X-Github: www.github.com/SweedJesus/SJMount
 
-SJMount_Core.lua
+SJMount.xml
+SJMount.lua
 SJMount_StaticMountList.lua

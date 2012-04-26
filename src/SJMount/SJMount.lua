@@ -1,18 +1,27 @@
 
+SJMOUNT_NUM_MOUNTS = GetNumCompanions(MOUNT)	-- Number of mounts
+SJMOUNT_LEVELS = {								-- Mount level string constants
+	[1] = "EPIC_GROUND",
+	[2] = "REGULAR_GROUND",
+	[3] = "EPIC_FLYING",
+	[4] = "REGULAR_FLYING",
+	[5] = "WATER"
+}
 
-function SJMount_Init()
-	SJMOUNT_NUM_MOUNTS = GetNumCompanions(MOUNT)	-- Number of mounts
-	SJMOUNT_LEVEL1 = "EPIC_GROUND"
-	SJMOUNT_LEVEL2 = "REGULAR_GROUND"
-	SJMOUNT_LEVEL3 = "EPIC_FLYING"
-	SJMOUNT_LEVEL4 = "REGULAR_FLYING"
-	SJMOUNT_LEVEL5 = "WATER"
+SJMount_config = {}								-- Config options table
+SJMount_mountList = {							-- Per character mount list
+	[SJMOUNT_LEVELS[1]] = {},
+	[SJMOUNT_LEVELS[2]] = {},
+	[SJMOUNT_LEVELS[3]] = {},
+	[SJMOUNT_LEVELS[4]] = {},
+	[SJMOUNT_LEVELS[5]] = {}
+}
 
-	SJMount_MountList = SJMount_MountList or nil
-	SJMount_StaticMountList = SJMount_StaticMountList or nil
+function SJMount_UpdateMacro()
+
 end
 
-function SJMount_UpdateList()
+function SJMount_UpdateMountList()
 	for i = 1, NUM_MOUNTS do
 		local
 		creatureID,		-- Unique ID of the companion
@@ -27,48 +36,11 @@ function SJMount_UpdateList()
 			-- 0x08 : Usable underwater
 			-- 0x10 : Can jump
 		= GetCompanionInfo(MOUNT, i)
-		SJMount_MountList[spellID] = true
-
-
-
-		--[[
-		if (mountFlag % 0x02) == 0 then			-- Flying mount
-			mountFlag = mountFlag - 0x02
-			if (mountFlag % 0x10) == 0 then			-- Can jump
-				mountFlag = mountFlag - 0x10
-				if (mountFlag % 0x08) == 0 then			-- Usable underwater
-				else									-- Unusable underwater
-					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
-					else									-- Unusable at the water's surface
-					end
-				end
-			else									-- Can't jump
-				if (mountFlag % 0x08) == 0 then			-- Usable underwater
-				else									-- Unusable underwater
-					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
-					else									-- Unusable at the water's surface
-					end
-				end
-			end
-		else									-- Ground mount
-			if (mountFlag % 0x10) == 0 then			-- Can jump
-				mountFlag = mountFlag - 0x10
-				if (mountFlag % 0x08) == 0 then			-- Usable underwater
-				else									-- Unusable underwater
-					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
-					else									-- Unusable at the water's surface
-					end
-				end
-			else									-- Can't jump
-				if (mountFlag % 0x08) == 0 then			-- Usable underwater
-				else									-- Unusable underwater
-					if (mountFlag % 0x04) == 0 then			-- Usable at the water's surface
-					else									-- Unusable at the water's surface
-					end
-				end
-			end
+		if SJMount_mountList[SJMount_StaticMountList[spellID]][spellID] == nil then
+			-- If the index for the currently known mount does not exist
+		else
+			-- If the index exists
 		end
-		--]]
 	end
 end
 
@@ -88,4 +60,8 @@ function SJMount_IsFlyableArea()
 			return true
 		end
 	end
+end
+
+function SJMount_SlashCommand()
+
 end

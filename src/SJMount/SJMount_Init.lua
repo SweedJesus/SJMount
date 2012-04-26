@@ -3,7 +3,7 @@ SJMOUNT_NAME = GetAddOnMetadata("SJMount", "Title")
 SJMOUNT_VERSION = GetAddOnMetadata("SJMount", "Version")
 SJMOUNT_FILENUM = GetAddOnMetadata("SJMount", "X-FileNumber")
 
-SJMount_EventHandlers = {
+SJMount_eventHandlers = {
 
 	--- ADDON_LOADED Event Handler:
 	-- Fires when an addon and its saved variables are loaded.
@@ -47,15 +47,17 @@ SJMount_EventHandlers = {
 --- OnLoad
 function SJMount_OnLoad(frame)
 	-- Register Events
-	for event in pairs(SJMount_EventHandlers) do
+	for event in pairs(SJMount_eventHandlers) do
 		frame:RegisterEvent(event)
 	end
 
 	-- Slash Commands
-	SlashCmdList["SJMount"] = SJMount_SCommand
-	SLASH_SJMount1 = "/sjmount"
-	SLASH_SJMount2 = "/sjm"
-	SLASH_SJMount3 = "/mount"
+	SlashCmdList["SJMOUNT"] = function()
+		SJMount_SlashCommand()
+	end
+	SLASH_SJMOUNT1 = "/sjmount"
+	SLASH_SJMOUNT2 = "/sjm"
+	SLASH_SJMOUNT3 = "/mount"
 end
 
 --- OnEvent

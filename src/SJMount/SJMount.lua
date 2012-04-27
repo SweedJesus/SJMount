@@ -3,167 +3,222 @@
 -- Global Variables
 --------------------------------------------------------------------------------
 SJMOUNT_CONSTS = {
-	-- Mount levels
-	["MOUNTLEVEL1"] = "EPIC_GROUND",
-	["MOUNTLEVEL2"] = "REGULAR_GROUND",
-	["MOUNTLEVEL3"] = "EPIC_FLYING",
-	["MOUNTLEVEL4"] = "REGULAR_FLYING",
-	["MOUNTLEVEL5"] = "WATER",
-	-- Riding skill level spell
-	["APPRENTICE"] 	= 33388,		-- Apprentice Riding
-	["JOURNEYMAN"] 	= 33391,		-- Journeyman Riding
-	["EXPERT"] = 34090,				-- Expert Riding
-	["ARTISAN"] = 34091,			-- Artisan Riding
-	["MASTER"] = 90265,				-- Master Riding
+	["MOUNTLEVELS"] = {
+		-- Mount levels
+		["MOUNTLEVEL1"] = "GROUND",	-- Ground mounts
+		["MOUNTLEVEL2"] = "FLYING",	-- Flying mounts
+		["MOUNTLEVEL3"] = "WATER"	-- Swimming mounts
+	},
+	-- Riding skill level spells
+	["RIDINGLEVELS"] = {
+		["APPRENTICE"]   = 33388,	-- Apprentice Riding
+		["JOURNEYMAN"]   = 33391,	-- Journeyman Riding
+		["EXPERT"]       = 34090,	-- Expert Riding
+		["ARTISAN"]      = 34091,	-- Artisan Riding
+		["MASTER"]       = 90265,	-- Master Riding
+	},
 	["NORTHREND_FLYING"] = 54197,	-- Cold Weather Flying
-	["AZEROTH_FLYING"] = 90267		-- Flight Master's License
+	["AZEROTH_FLYING"]   = 90267	-- Flight Master's License
 }
-SJMount_numMounts = GetNumCompanions(MOUNT)
-SJMount_savedVariables = {
+-- Configuration variables
+SJMount_configVariables = {
 	-- Config variables
-	["usingBlacklist"] = false,
-	["usingWhitelist"] = false,
-	-- Riding skill variables
-	["hasApprentice"] 	= nil,		-- Apprentice Riding
-	["hasJourneyman"] 	= nil,		-- Journeyman Riding
-	["hasExpert"] = nil,			-- Expert Riding
-	["hasArtisan"] = nil,			-- Artisan Riding
-	["hasMaster"] = nil,			-- Master Riding
-	["hasNorthrendFlying"] = nil,	-- Cold Weather Flying
-	["hasAzerothFlying"] = nil,		-- Flight Master's License
-	-- Mount list tables
-	["mountList"] = {
-		[SJMOUNT_CONSTS.MOUNTLEVEL1] = {},
-		[SJMOUNT_CONSTS.MOUNTLEVEL2] = {},
-		[SJMOUNT_CONSTS.MOUNTLEVEL3] = {},
-		[SJMOUNT_CONSTS.MOUNTLEVEL4] = {},
-		[SJMOUNT_CONSTS.MOUNTLEVEL5] = {}
-	}
+	["usingBlacklist"] = false,		-- if using blacklist (false if whitelist is true)
+	["usingWhitelist"] = false,		-- if using whitelist (false if blacklist is true)
 }
-SJMount_tempVariables = {
+-- Riding skill state variables
+SJMount_skillVariables = {
+	["ridinglevels"] = {
+		["hasApprentice"]  = nil,	-- Apprentice Riding
+		["hasJourneyman"]  = nil, 	-- Journeyman Riding
+		["hasExpert"]      = nil, 	-- Expert Riding
+		["hasArtisan"]     = nil, 	-- Artisan Riding
+		["hasMaster"]      = nil, 	-- Master Riding
+	},
+	["hasNorthrendFlying"] = nil, 	-- Cold Weather Flying
+	["hasAzerothFlying"]   = nil, 	-- Flight Master's License
+}
+-- Mount list tables
+SJMount_mountList = {
+	[SJMOUNT_CONSTS.MOUNTLEVELS.MOUNTLEVEL1] = {},
+	[SJMOUNT_CONSTS.MOUNTLEVELS.MOUNTLEVEL2] = {},
+	[SJMOUNT_CONSTS.MOUNTLEVELS.MOUNTLEVEL3] = {}
 }
 
-function SJMount_Update()
-
+---
+function SJMount_IsValidMountLevel(string)
+	if (string ~= nil) then
+		for k, v in pairs(SJMOUNT_CONSTS.MOUNTLEVELS) do
+			if (string == v) then
+				return true
+			end
+		end
+	end
+	return false
 end
 
-function SJMount_UseRandomBestMount()
-	if SJMount_savedVariables.ridingLevel ~= nil then
-		local mountLevel
-		if SJMount_IsFlyableArea() then
-			if SJMount_savedVariables.ridingLevel
-			local randomTable, index = {}, 1
-			for k, v in pairs(SJMount_savedVariables) do
-				randomTable[index] = v
-				index = index + 1
+---
+function SJMount_Use(mountLevel)
+	if (IsMounted()) then
+		Dismount()
+	else
+
+	end
+end
+
+---
+function SJMount_UseRandomMount(mountLevel)
+	if (SJMount_IsValidMountLevel(mountLevel)) then
+		if (SJMount_mountList[mountLevel] ~= nil) then
+			local randomTable, i = {}, 1
+			for _k, v in pairs(SJMount_mountList[mountLevel]) do
+				randomTable[i] = v
+				i = i + 1
 			end
-			print(randomTable[random(1, #randomTable)])
+			local randomIndex = randomTable[random(1, #randomTable)]
+			CallCompanion(MOUNT, randomIndex)
+		else
+			DEFAULT_CHAT_FRAME:AddMessage("|cffff0000ERROR: " .. mountLevel .. " level mount list is empty.|r")
+		end
+	else
+		DEFAULT_CHAT_FRAME:AddMessage("|cffff0000ERROR: Invalid mount level. Use: \"GROUND\", \"FLYING\", \"WATER\".|r")
+	end
+end
+
+---
+function SJMount_HasRidingSkillChanged()
+	if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.APPRENTICE) ~= SJMount_skillVariables.hasApprentice) then
+		return true
+	else
+		if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.JOURNEYMAN) ~= SJMount_skillVariables.ridinglevels.hasJourneyman) then
+			return true
+		else
+			if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.EXPERT) ~= SJMount_skillVariables.ridinglevels.hasExpert) then
+				return true
+			else
+				if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.ARTISAN) ~= SJMount_skillVariables.ridinglevels.hasArtisan) then
+					return true
+				else
+					if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.MASTER) ~= SJMount_skillVariables.ridinglevels.hasMaster) then
+						return true
+					else
+						return false
+					end
+				end
 			end
 		end
 	end
 end
 
-function SJMount_UseRandomLevel1Mount()
-end
-
+--- Update character specific riding skill status saved variables.
+-- Updates the values for riding skill status variables used in determining fastest mount level usable for the player character.
 function SJMount_UpdateRidingSkill()
-	-- Check known riding level
-	-- Apprentice Riding
-	if IsSpellKnown(SJMOUNT_CONSTS.APPRENTICE) then
-		SJMount_savedVariables.hasApprentice = true
-		SJMount_savedVariables.hasJourneyman = false
-		SJMount_savedVariables.hasExpert = false
-		SJMount_savedVariables.hasArtisan = false
-		SJMount_savedVariables.hasMaster = false
-	-- Journeyman Riding
-	elseif IsSpellKnown(SJMOUNT_CONSTS.JOURNEYMAN) then
-		SJMount_savedVariables.hasApprentice = true
-		SJMount_savedVariables.hasJourneyman = true
-		SJMount_savedVariables.hasExpert = false
-		SJMount_savedVariables.hasArtisan = false
-		SJMount_savedVariables.hasMaster = false
-	-- Expert Riding
-	elseif IsSpellKnown(SJMOUNT_CONSTS.EXPERT) then
-		SJMount_savedVariables.hasApprentice = true
-		SJMount_savedVariables.hasJourneyman = true
-		SJMount_savedVariables.hasExpert = true
-		SJMount_savedVariables.hasArtisan = false
-		SJMount_savedVariables.hasMaster = false
-	-- Artisan Riding
-	elseif IsSpellKnown(SJMOUNT_CONSTS.ARTISAN) then
-		SJMount_savedVariables.hasApprentice = true
-		SJMount_savedVariables.hasJourneyman = true
-		SJMount_savedVariables.hasExpert = true
-		SJMount_savedVariables.hasArtisan = true
-		SJMount_savedVariables.hasMaster = false
-	-- Master Riding
-	elseif IsSpellKnown(SJMOUNT_CONSTS.MASTER) then
-		SJMount_savedVariables.hasApprentice = true
-		SJMount_savedVariables.hasJourneyman = true
-		SJMount_savedVariables.hasExpert = true
-		SJMount_savedVariables.hasArtisan = true
-		SJMount_savedVariables.hasMaster = true
-	-- No riding skill
+	-- Check riding skill level
+	-- Master Riding is riding skill level
+	if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.MASTER)) then
+		SJMount_skillVariables.ridinglevels.hasApprentice = true
+		SJMount_skillVariables.ridinglevels.hasJourneyman = true
+		SJMount_skillVariables.ridinglevels.hasExpert = true
+		SJMount_skillVariables.ridinglevels.hasArtisan = true
+		SJMount_skillVariables.ridinglevels.hasMaster = true
 	else
-		SJMount_savedVariables.hasApprentice = false
-		SJMount_savedVariables.hasJourneyman = false
-		SJMount_savedVariables.hasExpert = false
-		SJMount_savedVariables.hasArtisan = false
-		SJMount_savedVariables.hasMaster = false
+		SJMount_skillVariables.ridinglevels.hasMaster = false
+		-- Artisan Riding is riding skill level
+		if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.ARTISAN)) then
+			SJMount_skillVariables.ridinglevels.hasApprentice = true
+			SJMount_skillVariables.ridinglevels.hasJourneyman = true
+			SJMount_skillVariables.ridinglevels.hasExpert = true
+			SJMount_skillVariables.ridinglevels.hasArtisan = true
+		else
+			SJMount_skillVariables.ridinglevels.hasArtisan = false
+			-- Expert Riding is riding skill level
+			if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.EXPERT)) then
+				SJMount_skillVariables.ridinglevels.hasApprentice = true
+				SJMount_skillVariables.ridinglevels.hasJourneyman = true
+				SJMount_skillVariables.ridinglevels.hasExpert = true
+			else
+				SJMount_skillVariables.ridinglevels.hasExpert = false
+				-- Journeyman Riding is riding skill level
+				if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.JOURNEYMAN)) then
+					SJMount_skillVariables.ridinglevels.hasApprentice = true
+					SJMount_skillVariables.ridinglevels.hasJourneyman = true
+				else
+					SJMount_skillVariables.ridinglevels.hasJourneyman = false
+					-- Apprentice Riding is riding skill level
+					if (IsSpellKnown(SJMOUNT_CONSTS.RIDINGLEVELS.APPRENTICE)) then
+						SJMount_skillVariables.ridinglevels.hasApprentice = true
+					else
+						SJMount_skillVariables.ridinglevels.hasApprentice = false
+					end
+				end
+			end
+		end
 	end
-	-- Check if Cold Weather Flying
-	if IsSpellKnown(SJMOUNT_CONSTS.NORTHREND_FLYING) then
-		SJMount_savedVariables.hasNorthrendFlying = true
+	-- Check continent specific riding skills
+	-- Cold Weather Flying (Northrend)
+	if (IsSpellKnown(SJMOUNT_CONSTS.NORTHREND_FLYING)) then
+		SJMount_skillVariables.hasNorthrendFlying = true
 	else
-		SJMount_savedVariables.hasNorthrendFlying = false
+		SJMount_skillVariables.hasNorthrendFlying = false
 	end
-	-- Check if Flight Master's License
-	if IsSpellKnown(SJMOUNT_CONSTS.AZEROTH_FLYING) then
-		SJMount_savedVariables.hasAzerothFlying = true
+	-- Flight Master's License (Azeroth)
+	if (IsSpellKnown(SJMOUNT_CONSTS.AZEROTH_FLYING)) then
+		SJMount_skillVariables.hasAzerothFlying = true
 	else
-		SJMount_savedVariables.hasAzerothFlying = false
+		SJMount_skillVariables.hasAzerothFlying = false
 	end
 end
 
+---
+function SJMount_GetMountListLength()
+	local listCount = 0
+	for _k, v in pairs(SJMount_mountList) do
+		listCount = listCount + #v
+	end
+	return listCount
+end
+
+---
 function SJMount_HasMountListChanged()
-	local listCount = SJMount_GetMountListCount()
-	if listCount == SJMount_numMounts then
+	if (SJMount_GetMountListLength() == GetNumCompanions(MOUNT)) then
 		return false
 	else
 		return true
 	end
 end
 
-function SJMount_GetMountListCount()
-	local listCount = 0
-	for v, k in pairs(SJMount_savedVariables.mountList) do
-		listCount = listCount + #k
-	end
-	return listCount
-end
-
+---
 function SJMount_UpdateMountList()
-	if SJMount_HasMountListChanged() then
-		for i = 1, SJMount_numMounts do
-			local _, _, mountSpellID, _, _, _ = GetCompanionInfo(MOUNT, i)
-			local mountLevel = SJMount_staticMountList[mountSpellID]
-			if SJMount_savedVariables.mountList[mountLevel][mountSpellID] == nil then
-				SJMount_savedVariables.mountList[mountLevel][mountSpellID] = true
-			end
-		end
+	local numCompanions = GetNumCompanions(MOUNT)
+	for i = 1, numCompanions do
+		local _creatureID, _creatureName, spellID, _icon, _active, _mountFlag = GetCompanionInfo(MOUNT, i)
+		local mountLevel = SJMount_staticMountList[spellID]
+		SJMount_mountList[mountLevel][spellID] = i
 	end
 end
 
+---
+function SJMount_UpdateAll()
+	SJMount_UpdateRidingSkill()
+	SJMount_UpdateMountList()
+end
+
+--- Reimplementation of the World of Warcraft API function IsFlyableArea.
+-- Reimplementation of the World of Warcraft API function IsFlyableArea to account for world
+-- PvP areas Wintergrasp and Tol Barad. Returns false if the player is presently located in
+-- either PvP zone and if a battle is currently active in that zone (i.e. battle for Wintergrasp
+-- rendering flying mounts unavailable).
+-- @return ifFlyable If flight is allowed in the player's current area
 function SJMount_IsFlyableArea()
-	if IsFlyableArea() then
-		if "Wintergrasp" == GetRealZoneText() then
-			local _, _, isActive, _, _, _ = GetWorldPVPAreaInfo(1)
-			if isActive then
+	if (IsFlyableArea()) then
+		if ("Wintergrasp" == GetRealZoneText()) then
+			local _pvpID, _localizedName, isActive, _canQueue, _waitTime, _canEnter = GetWorldPVPAreaInfo(1)
+			if (isActive) then
 				return false
 			end
-		elseif "Tol Barad" == GetRealZoneText() then
-			local _, _, isActive, _, _, _ = GetWorldPVPAreaInfo(2)
-			if isActive then
+		elseif ("Tol Barad" == GetRealZoneText()) then
+			local _pvpID, _localizedName, isActive, _canQueue, _waitTime, _canEnter = GetWorldPVPAreaInfo(2)
+			if (isActive) then
 				return false
 			end
 		else
@@ -172,6 +227,5 @@ function SJMount_IsFlyableArea()
 	end
 end
 
-function SJMount_SlashCommand()
-
-end
+---
+function SJMount_SlashCommand() end

@@ -20,7 +20,6 @@ SJMount_eventHandlers = {
 	-- Fired when the player enters the world, reloads the UI, enters/leaves an instance or battleground, or respawns at a graveyard.
 	-- Also fires any other time the player sees a loading screen.
 	["PLAYER_ENTERING_WORLD"] = function()
-		SJMount_UpdateAll()
 		DEFAULT_CHAT_FRAME:AddMessage("|cffa9bacb<SJMount>|r File: SJMount_" .. SJMOUNT_FILENUM .. "|cffa9bacb by SweedJesus|r")
 	end,
 

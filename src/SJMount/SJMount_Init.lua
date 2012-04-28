@@ -45,6 +45,8 @@ SJMount_eventHandlers = {
 	-- Fires when a unit loses or gains a buff or debuff.
 	["UNIT_AURA"] = function(_frame, arg1)
 		if (arg1 == "player") then
+			if (IsMounted()) then
+			end
 		end
 	end,
 

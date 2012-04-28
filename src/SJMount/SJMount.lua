@@ -66,6 +66,10 @@ SJMount_states = {
 	["isFlyableArea"] = false
 }
 
+-- -----------------------------------------------------------------------------
+-- FUNCTIONS
+-- -----------------------------------------------------------------------------
+
 ---
 function SJMount_IsValidMountLevel(string)
 	if (string) then
@@ -165,6 +169,19 @@ function SJMount_HasMountListLengthChanged()
 end
 
 ---
+function SJMount_HaveStatesChanged()
+	if (SJMount_states.isMounted ~= IsMounted()) then
+		return true
+	elseif (SJMount_states.isIndoors ~= IsIndoors()) then
+		return true
+	elseif (SJMount_states.isFlyableArea ~= SJMount_IsFlyableArea()) then
+		return true
+	else
+		return false
+	end
+end
+
+---
 function SJMount_UpdateStates()
 	SJMount_states.isMounted = IsMounted()
 	SJMount_states.isIndoors = IsIndoors()
@@ -226,20 +243,35 @@ end
 -- -----------------------------------------------------------------------------
 
 ---
-function SJMount_MacroFunction()
-	SJMount_UpdateStates()
-	if (SJMount_states.isMounted) then
-		Dismount()
-	else
-		if (SJMount_states.isFlyableArea) then
-			-- can fly
-			SJMount_UseRandomFlyingMount()
-		else
-			-- cannot fly
-			if (SJMount_configVariables.useFlyingMountsWhenNotFlyable) then
-				SJMount_UseRandomGroundOrFlyingMount()
+function SJMount_GetMacroFunction()
+	if (SJMount_states.isFlyableArea) then
+		-- can fly
+		return function()
+			if (SJMount_states.isMounted) then
+				Dismount()
 			else
-				SJMount_UseRandomGroundMount()
+				SJMount_UseRandomFlyingMount()
+			end
+		end
+	else
+		-- cannot fly
+		if (SJMount_configVariables.useFlyingMountsWhenNotFlyable) then
+			-- enabled use of flying mounts when cannot fly
+			return function()
+				if (SJMount_states.isMounted) then
+					Dismount()
+				else
+					SJMount_UseRandomGroundOrFlyingMount()
+				end
+			end
+		else
+			-- disabled use of flying mounts when cannot fly
+			return function()
+				if (SJMount_states.isMounted) then
+					Dismount()
+				else
+					SJMount_UseRandomGroundMount()
+				end
 			end
 		end
 	end
@@ -283,7 +315,7 @@ function SJMount_PrintTempVariables()
 end
 
 ---
-function SJMount_PrintAllVarianbles()
+function SJMount_PrintAllVariables()
 	SJMount_PrintSavedVariables()
 	SJMount_PrintTempVariables()
 end

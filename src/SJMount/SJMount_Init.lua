@@ -6,6 +6,8 @@ SJMOUNT_NAME = GetAddOnMetadata("SJMount", "Title")
 SJMOUNT_VERSION = GetAddOnMetadata("SJMount", "Version")
 SJMOUNT_FILENUM = GetAddOnMetadata("SJMount", "X-FileNumber")
 
+SJMount_macroFunction = nil
+
 SJMount_eventHandlers = {
 
 	-- ADDON_LOADED:
@@ -45,23 +47,33 @@ SJMount_eventHandlers = {
 	-- Fires when a unit loses or gains a buff or debuff.
 	["UNIT_AURA"] = function(_frame, arg1)
 		if (arg1 == "player") then
-			if (IsMounted()) then
-			end
 		end
 	end,
 
 	-- ZONE_CHANGED:
 	-- Fires when the player moves between subzones or other named areas.
 	["ZONE_CHANGED"] = function()
+		if (SJMount_HaveStatesChanged()) then
+			SJMount_UpdateStates()
+			SJMount_macroFunction = SJMount_GetMacroFunction()
+		end
 	end,
 
 	-- ZONE_CHANGED_NEW_AREA:
 	-- Fires when the player moves between major zones or enters/exits an instance.
 	["ZONE_CHANGED_NEW_AREA"] = function()
+		if (SJMount_HaveStatesChanged()) then
+			SJMount_UpdateStates()
+			SJMount_macroFunction = SJMount_GetMacroFunction()
+		end
 	end,
 	-- UPDATE_WORLD_STATES:
 	-- Fires when information for world state UI elements changes or becomes available.
 	["UPDATE_WORLD_STATES"] = function()
+		if (SJMount_HaveStatesChanged()) then
+			SJMount_UpdateStates()
+			SJMount_macroFunction = SJMount_GetMacroFunction()
+		end
 	end
 }
 

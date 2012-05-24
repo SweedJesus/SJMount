@@ -1,0 +1,7 @@
+
+SJMount_mountList.useList
+-- needs to be consecutively indexed ([1], [2], [3], etc.)
+-- includes only listings not listed in blacklist, or are listed in whitelist (one or the other)
+
+SJMount_mountList.useList[#index]
+-- each index

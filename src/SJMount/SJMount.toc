@@ -5,9 +5,7 @@
 ## Title: SJMount
 ## Notes: Simple automated mounting addon
 ## SavedVariables:
-## SavedVariablesPerCharacter: SJMount_configVariables, SJMount_skillVariables, SJMount_mountList
+## SavedVariablesPerCharacter: SJM_config, SJM_blacklist, SJM_whitelist
 ## X-Github: www.github.com/SweedJesus/SJMount
 
 SJMount.xml
-SJMount.lua
-SJMount_StaticMountList.lua

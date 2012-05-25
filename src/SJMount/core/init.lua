@@ -24,6 +24,7 @@ local eventHandlers = {
 	-- Also fires any other time the player sees a loading screen.
 	["PLAYER_ENTERING_WORLD"] = function()
 		T.Init()
+		SJM:RegisterEvent("UPDATE_WORLD_STATES")
 	end,
 	-- LEARNED_SPELL_IN_TAB:
 	-- Fires when a spell is learned inside of a given spell book tab, including when spells are learned upon changing the active talent spec.
@@ -50,19 +51,27 @@ local eventHandlers = {
 	-- Fires when the player moves between subzones or other named areas.
 	["ZONE_CHANGED"] = function()
 		T.CheckStates()
+		if (SJMountDataPerChar.debug) then
+			DEFAULT_CHAT_FRAME:AddMessage("[|cffca9420ZONE_CHANGED|r]")
+		end
 	end,
 
 	-- ZONE_CHANGED_NEW_AREA:
 	-- Fires when the player moves between major zones or enters/exits an instance.
 	["ZONE_CHANGED_NEW_AREA"] = function()
 		T.CheckStates()
+		if (SJMountDataPerChar.debug) then
+			DEFAULT_CHAT_FRAME:AddMessage("[|cffca9420ZONE_CHANGE_NEW_AREA|r]")
+		end
 	end,
 	-- UPDATE_WORLD_STATES:
 	-- Fires when information for world state UI elements changes or becomes available.
-	--	["UPDATE_WORLD_STATES"] = function()
-	--		DEFAULT_CHAT_FRAME:AddMessage("C")
-	--		SJM_CheckStates()
-	--	end
+	["UPDATE_WORLD_STATES"] = function()
+		T.CheckStates()
+		if (SJMountDataPerChar.debug) then
+			DEFAULT_CHAT_FRAME:AddMessage("[|cffca9420UPDATE_WORLD_STATES|r]")
+		end
+	end,
 }
 
 -- -----------------------------------------------------------------------------
@@ -72,7 +81,9 @@ local eventHandlers = {
 function SJM_OnLoad(frame)
 	-- Register Events
 	for event in pairs(eventHandlers) do
-		frame:RegisterEvent(event)
+		if (event ~= "UPDATE_WORLD_STATES") then
+			frame:RegisterEvent(event)
+		end
 	end
 
 	-- Slash Commands

@@ -4,11 +4,19 @@ local T, C, L = unpack(select(2, ...))
 -- Localization for enUS and enGB
 -- -----------------------------------------------------------------------------
 
+-- Yellow 1 "ca9420"
+-- Yellow 2 "e7bf6a"
+
 -- Strings
 L.STRING_DEBUGGINGMESSAGES 		= "debugging messages"
 L.STRING_USEFLYERWHENUNFLYABLE 	= "use flying mounts when unflyable"
 L.STRING_OFF 					= "|cffff0000off|r"
 L.STRING_ON 					= "|cff00ff00on|r"
+-- Zone names
+L.WINTERGRASP					= "Wintergrasp"
+L.TOL_BARAD						= "Tol Barad"
+L.DALARAN						= "Dalaran"
+L.CIRCLE_OF_WILLS					= "Circle of Wills"
 -- Tokens
 L.TOKEN_ADD 					= "Add"
 L.TOKEN_BLACKLIST 				= "Blacklist"

@@ -4,11 +4,14 @@ local T, C, L = unpack(select(2, ...))
 -- CONSTANTS
 -- -----------------------------------------------------------------------------
 
-local SJM_MOUNTLEVEL1 	= "GROUND"
-local SJM_MOUNTLEVEL2 	= "FLYING"
-local SJM_MOUNTLEVEL3	= "WATER"
+T.MOUNTLEVEL1 	= "GROUND"
+T.MOUNTLEVEL2 	= "FLYING"
+T.MOUNTLEVEL3	= "WATER"
 
-local SJM_RIDINGSKILLS = {
+T.YELLOW1 = "ca9420"
+T.YELLOW2 = "e7bf6a"
+
+T.RIDINGSKILLS = {
 	APPRENTICE 			= 33388, -- Apprentice Riding 		[Regular Ground]
 	JOURNEYMAN 			= 33391, -- Journeyman Riding 		[Epic Ground]
 	EXPERT 				= 34090, -- Expert Riding 			[Regular Flying]
@@ -18,48 +21,41 @@ local SJM_RIDINGSKILLS = {
 	AZEROTH_FLYING 		= 90267  -- Flight Master's License	[Azeroth Flying]
 }
 
--- -----------------------------------------------------------------------------
--- STRINGS
--- -----------------------------------------------------------------------------
+T.mountName = nil
+T.mountIndex = nil
 
-local SJM_YELLOW1 = "ca9420"
-local SJM_YELLOW2 = "e7bf6a"
-
-local SJM_mountName
-local SJM_mountIndex
-
-local SJM_ridingSkillStates = {
-	apprentice 			= false, -- Apprentice Riding 		[Regular Ground]
-	journeyman			= false, -- Journeyman Riding 		[Epic Ground]
-	expert 				= false, -- Expert Riding 			[Regular Flying]
-	artisan 			= false, -- Artisan Riding 			[Epic Flying rank 1]
-	master				= false, -- Master Riding 			[Epic Flying rank 2]
-	northrend_flying 	= false, -- Cold Weather Flying 	[Northrend Flying]
-	azeroth_flying 		= false	 -- Flight Master's License	[Azeroth Flying]
-}
-
-local SJM_states = {
+T.states = {
 	-- AddOn states
 	isInitialized 		= false,
 	isRequestingUpdate 	= false,
 	isUpdating 			= false,
+	-- Riding skill states
+	ridingSkills = {
+		apprentice 			= false, -- Apprentice Riding 		[Regular Ground]
+		journeyman			= false, -- Journeyman Riding 		[Epic Ground]
+		expert 				= false, -- Expert Riding 			[Regular Flying]
+		artisan 			= false, -- Artisan Riding 			[Epic Flying rank 1]
+		master				= false, -- Master Riding 			[Epic Flying rank 2]
+		northrend_flying 	= false, -- Cold Weather Flying 	[Northrend Flying]
+		azeroth_flying 		= false	 -- Flight Master's License	[Azeroth Flying]
+	},
 	-- World states
 	canMount 			= false,
 	isFlyable 			= false
 }
 
-local SJM_linkedList = {
-	[SJM_MOUNTLEVEL1] = { -- Linked-list for ground mounts
+T.linkedList = {
+	[T.MOUNTLEVEL1] = { -- Linked-list for ground mounts
 		mountList 		= {},
 		mountListLength = 0,
 		randomList 		= {}
 	},
-	[SJM_MOUNTLEVEL2] = { -- Linked-list for flying mounts
+	[T.MOUNTLEVEL2] = { -- Linked-list for flying mounts
 		mountList 		= {},
 		mountListLength = 0,
 		randomList 		= {}
 	},
-	[SJM_MOUNTLEVEL3] = { -- Linked-list for water mounts
+	[T.MOUNTLEVEL3] = { -- Linked-list for water mounts
 		mountList 		= {},
 		mountListLength = 0,
 		randomList 		= {}
@@ -84,44 +80,21 @@ local SJM_linkedList = {
 	--			CallCompanion(MOUNT, randomCompanionIndex)
 }
 
--- Global fields
-SJM_commandTable = nil
-SJM_blacklist = {}
--- IMPLEMENTATION:
--- If usage is enabled in SJMount_config, mounts on this list will be EXCLUDED from being loaded into the mount linked-list.
--- Enabling both blacklist and whitelist usage will result in both lists being disabled.
---
--- USAGE:
--- ["Spell ID"] = true
--- Set "true" to enable use
--- Set "false" to remove an entry from the list (on next linked-list load)
-SJM_whitelist = {}
--- IMPLEMENTATION:
--- If usage is enabled in SJMount_config, ONLY mounts on this list will be loaded into the mount linked-list.
--- Enabling both blacklist and whitelist usage will result in both lists being disabled.
---
--- USAGE:
--- ["Spell ID"] = true
--- Set "true" to enable use
--- Set "false" to remove an entry from the list (on next linked-list load)
-SJM_config = {
-	-- Blacklist and whitelist
-	useBlacklist 			= false,
-	useWhitelist			= false,
-	-- Toggleable options
-	useFlyerWhenUnflyable 	= false,
-	debug 					= false
+SJMountDataPerChar = {
+	["blacklist"] 				= {},
+	["whitelist"] 				= {},
+	["useBlacklist"] 			= false,
+	["useWhitelist"] 			= false,
+	["useFlyerWhenUnflyable"] 	= false,
+	["debug"] 					= false
 }
-
--- Global methods
-SJM_SlashCommand = nil
 
 --- Reimplementation of the World of Warcraft API function IsFlyableArea.
 -- Reimplementation of the World of Warcraft API function IsFlyableArea to account for world PvP areas Wintergrasp
 -- and Tol Barad. Returns false if player is presently located in either PvP zone and if a battle is currently active
 -- in that zone (i.e. battle for Wintergrasp rendering flying mounts unavailable).
 -- @return ifFlyable If flight is allowed in the player's current area
-local function SJM_IsFlyableArea()
+function T.IsFlyableArea()
 	if (not IsFlyableArea()) then
 		return false
 	else
@@ -143,7 +116,7 @@ end
 local throttle = 20
 local counter = 0
 ---
-function SJM_OnUpdate(self, elapsed)
+function T.OnUpdate(self, elapsed)
 	counter = counter + elapsed
 	if (counter >= throttle) then
 		DEFAULT_CHAT_FRAME:AddMessage(L.UPDATE_REQUEST)
@@ -152,55 +125,55 @@ function SJM_OnUpdate(self, elapsed)
 end
 
 ---
-local function SJM_EnableOnUpdateScript(useScript)
+function T.EnableOnUpdateScript(useScript)
 	if (useScript) then
-		if (not SJM_states.isRequestingUpdate) then
+		if (not T.states.isRequestingUpdate) then
 			counter = throttle
-			SJM_states.isRequestingUpdate = true
-			SJM:SetScript("OnUpdate", SJM_OnUpdate)
+			T.states.isRequestingUpdate = true
+			SJM:SetScript("OnUpdate", T.OnUpdate)
 		end
 	else
-		SJM_states.isRequestingUpdate = false
+		T.states.isRequestingUpdate = false
 		SJM:SetScript("OnUpdate", nil)
 	end
 end
 
 ---
-function SJM_RidingSkillStatesUpdate()
-	SJM_ridingSkillStates.apprentice 		= IsSpellKnown(SJM_RIDINGSKILLS.APPRENTICE)
-	SJM_ridingSkillStates.journeyman 		= IsSpellKnown(SJM_RIDINGSKILLS.JOURNEYMAN)
-	SJM_ridingSkillStates.expert			= IsSpellKnown(SJM_RIDINGSKILLS.EXPERT)
-	SJM_ridingSkillStates.artisan 			= IsSpellKnown(SJM_RIDINGSKILLS.ARTISAN)
-	SJM_ridingSkillStates.master 			= IsSpellKnown(SJM_RIDINGSKILLS.MASTER)
-	SJM_ridingSkillStates.northrend_flying 	= IsSpellKnown(SJM_RIDINGSKILLS.NORTHREND_FLYING)
-	SJM_ridingSkillStates.azeroth_flying 	= IsSpellKnown(SJM_RIDINGSKILLS.AZEROTH_FLYING)
-	if (IsSpellKnown(SJM_RIDINGSKILLS.MASTER)) then
-		SJM_ridingSkillStates.apprentice 	= true
-		SJM_ridingSkillStates.journeyman 	= true
-		SJM_ridingSkillStates.expert 		= true
-		SJM_ridingSkillStates.artisan 		= true
-		SJM_ridingSkillStates.master 		= true
+function T.RidingSkillsUpdate()
+	T.states.ridingSkills.apprentice 			= IsSpellKnown(T.RIDINGSKILLS.APPRENTICE)
+	T.states.ridingSkills.journeyman 			= IsSpellKnown(T.RIDINGSKILLS.JOURNEYMAN)
+	T.states.ridingSkills.expert				= IsSpellKnown(T.RIDINGSKILLS.EXPERT)
+	T.states.ridingSkills.artisan 			= IsSpellKnown(T.RIDINGSKILLS.ARTISAN)
+	T.states.ridingSkills.master 				= IsSpellKnown(T.RIDINGSKILLS.MASTER)
+	T.states.ridingSkills.northrend_flying 	= IsSpellKnown(T.RIDINGSKILLS.NORTHREND_FLYING)
+	T.states.ridingSkills.azeroth_flying 		= IsSpellKnown(T.RIDINGSKILLS.AZEROTH_FLYING)
+	if (IsSpellKnown(T.RIDINGSKILLS.MASTER)) then
+		T.states.ridingSkills.apprentice 	= true
+		T.states.ridingSkills.journeyman 	= true
+		T.states.ridingSkills.expert 		= true
+		T.states.ridingSkills.artisan 	= true
+		T.states.ridingSkills.master 		= true
 	else
-		SJM_ridingSkillStates.master 		= false
-		if (IsSpellKnown(SJM_RIDINGSKILLS.ARTISAN)) then
-			SJM_ridingSkillStates.apprentice 	= true
-			SJM_ridingSkillStates.journeyman 	= true
-			SJM_ridingSkillStates.expert 		= true
-			SJM_ridingSkillStates.artisan 		= true
+		T.states.ridingSkills.master 		= false
+		if (IsSpellKnown(T.RIDINGSKILLS.ARTISAN)) then
+			T.states.ridingSkills.apprentice 	= true
+			T.states.ridingSkills.journeyman 	= true
+			T.states.ridingSkills.expert 		= true
+			T.states.ridingSkills.artisan 	= true
 		else
-			SJM_ridingSkillStates.artisan 		= false
-			if (IsSpellKnown(SJM_RIDINGSKILLS.EXPERT)) then
-				SJM_ridingSkillStates.apprentice 	= true
-				SJM_ridingSkillStates.journeyman 	= true
-				SJM_ridingSkillStates.expert 		= true
+			T.states.ridingSkills.artisan 		= false
+			if (IsSpellKnown(T.RIDINGSKILLS.EXPERT)) then
+				T.states.ridingSkills.apprentice 	= true
+				T.states.ridingSkills.journeyman 	= true
+				T.states.ridingSkills.expert 		= true
 			else
-				SJM_ridingSkillStates.expert 		= false
-				if (IsSpellKnown(SJM_RIDINGSKILLS.JOURNEYMAN)) then
-					SJM_ridingSkillStates.apprentice 	= true
-					SJM_ridingSkillStates.journeyman 	= true
+				T.states.ridingSkills.expert 		= false
+				if (IsSpellKnown(T.RIDINGSKILLS.JOURNEYMAN)) then
+					T.states.ridingSkills.apprentice 	= true
+					T.states.ridingSkills.journeyman 	= true
 				else
-					SJM_ridingSkillStates.apprentice 	= IsSpellKnown(SJM_RIDINGSKILLS.APPRENTICE)
-					SJM_ridingSkillStates.journeyman 	= false
+					T.states.ridingSkills.apprentice 	= IsSpellKnown(T.RIDINGSKILLS.APPRENTICE)
+					T.states.ridingSkills.journeyman 	= false
 				end
 			end
 		end
@@ -208,30 +181,30 @@ function SJM_RidingSkillStatesUpdate()
 end
 
 ---
-local function SJM_LinkedListAddMount(spellID, mountLevel, mountSublevel, companionIndex, usemount)
-	if ((mountLevel == SJM_MOUNTLEVEL1) or (mountLevel == SJM_MOUNTLEVEL2) or (mountLevel == SJM_MOUNTLEVEL3)) then
+function T.LinkedListAddMount(spellID, mountLevel, mountSublevel, companionIndex, usemount)
+	if ((mountLevel == T.MOUNTLEVEL1) or (mountLevel == T.MOUNTLEVEL2) or (mountLevel == T.MOUNTLEVEL3)) then
 		if (usemount == true) then
-			local randomListIndex = (#SJM_linkedList[mountLevel].randomList + 1)
-			SJM_linkedList[mountLevel].mountList[spellID] = companionIndex
-			SJM_linkedList[mountLevel].randomList[randomListIndex] = SJM_linkedList[mountLevel].mountList[spellID]
-			if ((mountLevel == SJM_MOUNTLEVEL2) and SJM_config.useFlyerWhenUnflyable) then
-				randomListIndex = (#SJM_linkedList.GROUND.randomList + 1)
-				SJM_linkedList[SJM_MOUNTLEVEL1].mountList[spellID] = companionIndex
-				SJM_linkedList[SJM_MOUNTLEVEL1].mountListLength = SJM_linkedList[SJM_MOUNTLEVEL1].mountListLength + 1
-				SJM_linkedList[SJM_MOUNTLEVEL1].randomList[randomListIndex] = SJM_linkedList[SJM_MOUNTLEVEL1].mountList[spellID]
+			local randomListIndex = (#T.linkedList[mountLevel].randomList + 1)
+			T.linkedList[mountLevel].mountList[spellID] = companionIndex
+			T.linkedList[mountLevel].randomList[randomListIndex] = T.linkedList[mountLevel].mountList[spellID]
+			if ((mountLevel == T.MOUNTLEVEL2) and SJMountDataPerChar.useFlyerWhenUnflyable) then
+				randomListIndex = (#T.linkedList.GROUND.randomList + 1)
+				T.linkedList[T.MOUNTLEVEL1].mountList[spellID] = companionIndex
+				T.linkedList[T.MOUNTLEVEL1].mountListLength = T.linkedList[T.MOUNTLEVEL1].mountListLength + 1
+				T.linkedList[T.MOUNTLEVEL1].randomList[randomListIndex] = T.linkedList[T.MOUNTLEVEL1].mountList[spellID]
 			end
 		else
-			SJM_linkedList[mountLevel].mountList[spellID] = false
+			T.linkedList[mountLevel].mountList[spellID] = false
 		end
-		SJM_linkedList[mountLevel].mountListLength = SJM_linkedList[mountLevel].mountListLength + 1
+		T.linkedList[mountLevel].mountListLength = T.linkedList[mountLevel].mountListLength + 1
 	end
 end
 
 ---
-local function SJM_LinkedListUpdate()
-	SJM_states.isUpdating = true
+function T.LinkedListUpdate()
+	T.states.isUpdating = true
 	-- Erase mount list length and random list entries
-	for k, v1 in pairs(SJM_linkedList) do
+	for k, v1 in pairs(T.linkedList) do
 		v1.mountListLength = 0
 		for k in ipairs(v1.randomList) do
 			v1.randomList[k] = nil
@@ -239,8 +212,8 @@ local function SJM_LinkedListUpdate()
 	end
 
 	-- If both lists are disable, disable both
-	if (SJM_config.useBlacklist and SJM_config.useWhitelist) then
-		SJM_config.useBlacklist, SJM_config.useWhitelist = false, false
+	if (SJMountDataPerChar.useBlacklist and SJMountDataPerChar.useWhitelist) then
+		SJMountDataPerChar.useBlacklist, SJMountDataPerChar.useWhitelist = false, false
 	end
 
 	local numCompanions = GetNumCompanions(MOUNT)	-- Total number of companion mounts learned
@@ -248,36 +221,35 @@ local function SJM_LinkedListUpdate()
 
 	for mountIndex = 1, numCompanions do
 		_, _, spellID = GetCompanionInfo(MOUNT, mountIndex)
-		--local mountSubLevel, mountLevel = strsplit(" ", T.staticMountList[spellID], 2)
 		mountLevel = T.staticMountList[spellID]
-		if (SJM_config.useBlacklist) then
-			usemount = (SJM_blacklist[spellID] == nil)
-		elseif (SJM_config.useWhitelist) then
-			usemount = (SJM_whitelist[spellID] ~= nil)
+		if (SJMountDataPerChar.useBlacklist) then
+			usemount = (SJMountDataPerChar.blacklist[spellID] == nil)
+		elseif (SJMountDataPerChar.useWhitelist) then
+			usemount = (SJMountDataPerChar.whitelist[spellID] ~= nil)
 		else
 			usemount = true
 		end
-		SJM_LinkedListAddMount(spellID, mountLevel, mountSublevel, mountIndex, usemount)
+		T.LinkedListAddMount(spellID, mountLevel, mountSublevel, mountIndex, usemount)
 		-- Clear false blacklist and whitelist entries
-		SJM_blacklist[spellID] = (SJM_blacklist[spellID] or nil)
-		SJM_whitelist[spellID] = (SJM_whitelist[spellID] or nil)
+		SJMountDataPerChar.blacklist[spellID] = (SJMountDataPerChar.blacklist[spellID] or nil)
+		SJMountDataPerChar.whitelist[spellID] = (SJMountDataPerChar.whitelist[spellID] or nil)
 	end
 
-	SJM_EnableOnUpdateScript(false)
-	SJM_states.isUpdating = false
+	T.EnableOnUpdateScript(false)
+	T.states.isUpdating = false
 end
 
 ---
-function SJM_LinkedListUpdateCheck()
-	SJM_EnableOnUpdateScript(not (SJM_linkedList.GROUND.mountListLength + SJM_linkedList.FLYING.mountListLength + SJM_linkedList.WATER.mountListLength) == GetNumCompanions(MOUNT))
+function T.LinkedListUpdateCheck()
+	T.EnableOnUpdateScript(not (T.linkedList.GROUND.mountListLength + T.linkedList.FLYING.mountListLength + T.linkedList.WATER.mountListLength) == GetNumCompanions(MOUNT))
 end
 
 ---
-local function SJM_GetRandomMountOfLevel(mountLevel)
-	if ((mountLevel == SJM_MOUNTLEVEL1) or (mountLevel == SJM_MOUNTLEVEL2) or (mountLevel == SJM_MOUNTLEVEL3)) then
-		if (next(SJM_linkedList[mountLevel].randomList)) then
-			local randomMountIndex = (random(#SJM_linkedList[mountLevel].randomList))
-			local mountIndex = SJM_linkedList[mountLevel].randomList[randomMountIndex]
+function T.GetRandomMountOfLevel(mountLevel)
+	if ((mountLevel == T.MOUNTLEVEL1) or (mountLevel == T.MOUNTLEVEL2) or (mountLevel == T.MOUNTLEVEL3)) then
+		if (next(T.linkedList[mountLevel].randomList)) then
+			local randomMountIndex = (random(#T.linkedList[mountLevel].randomList))
+			local mountIndex = T.linkedList[mountLevel].randomList[randomMountIndex]
 			local _mountSpellID, mountName = GetCompanionInfo(MOUNT, mountIndex)
 			return mountName, mountIndex
 		else
@@ -289,50 +261,49 @@ local function SJM_GetRandomMountOfLevel(mountLevel)
 end
 
 ---
-local function SJM_GetNewMount()
-	if ((not SJM_states.isUpdating) and (not IsIndoors())) then
-		if (next(SJM_linkedList.FLYING.mountList)) then
-			if (SJM_IsFlyableArea()) then
-				SJM_mountName, SJM_mountIndex = SJM_GetRandomMountOfLevel(SJM_MOUNTLEVEL2)
+function T.GetNewMount()
+	if ((not T.states.isUpdating) and (not IsIndoors())) then
+		if (next(T.linkedList.FLYING.mountList)) then
+			if (IsFlyableArea()) then
+				T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL2)
 			else
-				if (SJM_config.useFlyerWhenUnflyable) then
-					local numground = #SJM_linkedList.GROUND.randomList
-					local numflying = #SJM_linkedList.FLYING.randomList
-					local total = numground + numflying
+				if (SJMountDataPerChar.useFlyerWhenUnflyable) then
+					local numground = #T.linkedList.GROUND.randomList
+					local total = numground + #T.linkedList.FLYING.randomList
 					if (random(total) < numground) then
-						SJM_mountName, SJM_mountIndex = SJM_GetRandomMountOfLevel(SJM_MOUNTLEVEL1)
+						T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL1)
 					else
-						SJM_mountName, SJM_mountIndex = SJM_GetRandomMountOfLevel(SJM_MOUNTLEVEL2)
+						T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL2)
 					end
 				else
-					SJM_mountName, SJM_mountIndex = SJM_GetRandomMountOfLevel(SJM_MOUNTLEVEL1)
+					T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL1)
 				end
 			end
 		else
-			SJM_mountName, SJM_mountIndex = SJM_GetRandomMountOfLevel(SJM_MOUNTLEVEL1)
+			T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL1)
 		end
-		if (SJM_config.debug) then
-			DEFAULT_CHAT_FRAME:AddMessage("Next mount: " .. SJM_mountName)
+		if (SJMountDataPerChar.debug) then
+			DEFAULT_CHAT_FRAME:AddMessage("Next mount: " .. T.mountName)
 		end
 	end
 end
 
 ---
-function SJM_MacroUseFunction()
-	if (not (IsFlying() and SJM_config.useSafefly) and IsMounted()) then
+function SJMountUse()
+	if (not (IsFlying() and C.useSafefly) and IsMounted()) then
 		Dismount()
 	else
-		CallCompanion(MOUNT, SJM_mountIndex)
-		SJM_GetNewMount()
+		CallCompanion(MOUNT, T.mountIndex)
+		T.GetNewMount()
 	end
 end
 
 ---
-function SJM_CheckStates()
-	if ((SJM_states.canMount ~= IsIndoors()) or (SJM_states.isFlyable ~= SJM_IsFlyableArea())) then
-		SJM_states.canMount = not IsIndoors()
-		SJM_states.isFlyable = SJM_IsFlyableArea()
-		SJM_GetNewMount()
+function T.CheckStates()
+	if ((T.states.canMount ~= IsIndoors()) or (T.states.isFlyable ~= T.IsFlyableArea())) then
+		T.states.canMount = not IsIndoors()
+		T.states.isFlyable = T.IsFlyableArea()
+		T.GetNewMount()
 	end
 end
 
@@ -361,7 +332,7 @@ local frame =  getglobal(key)
 hooksecurefunc(frame, "SetAction", SetAction)
 
 ---
-local function SJM_WriteMacro()
+function T.WriteMacro()
 	if (not InCombatLockdown()) then
 		local macroIndex = GetMacroIndexByName(L.MACRO_NAME)
 		if (macroIndex == 0) then
@@ -384,14 +355,14 @@ end
 
 ---
 function T.Init()
-	SJM_RidingSkillStatesUpdate()
-	if (SJM_ridingSkillStates.apprentice) then
-		SJM_LinkedListUpdate()
-		SJM_WriteMacro()
-		SJM_CheckStates()
+	T.RidingSkillsUpdate()
+	if (T.states.ridingSkills.apprentice) then
+		T.LinkedListUpdate()
+		T.WriteMacro()
+		T.CheckStates()
 	else
 		DEFAULT_CHAT_FRAME:AddMessage(L.ERROR_NORIDINGSKILLKNOWN)
-		DisableAddOn(SJM_NAME)
+		DisableAddOn(T.addonName)
 	end
 end
 
@@ -402,16 +373,13 @@ end
 local PATTERN_SPELLLINK  = "(|c%x+|H%a*:%d*|h%[[%a%s]*%]|h|r)"
 local PATTERN_SPELLID = "|c%x+|H%a*:(%d*)|h%[[%a%s]*%]|h|r"
 
-local SJM_commandTable
-local SJM_CT_AddMounts
-
 ---
-function SJM_CT_AddMounts(arg1, arg2, arg3)
+function T.AddMounts(arg1, arg2, arg3)
 	local list
 	if (arg3 == L.TOKEN_BLACKLIST) then
-		list = SJM_blacklist
+		list = SJMountDataPerChar.blacklist
 	elseif (arg3 == L.TOKEN_WHITELIST) then
-		list = SJM_whitelist
+		list = SJMountDataPerChar.whitelist
 	end
 	arg3 = strlower(arg3)
 	local enableOnUpdateScript
@@ -431,73 +399,73 @@ function SJM_CT_AddMounts(arg1, arg2, arg3)
 		end
 	end
 	if (enableOnUpdateScript) then
-		SJM_EnableOnUpdateScript(true)
+		T.EnableOnUpdateScript(true)
 	else
-		SJM_SlashCommand(arg3, SJM_commandTable[strlower(L.TOKEN_ADD)][strlower(L.TOKEN_HELP)])
+		T.SlashCommand(arg3, T.commandTable[strlower(L.TOKEN_ADD)][strlower(L.TOKEN_HELP)])
 	end
 end
 
-SJM_commandTable = {
+T.commandTable = {
 	[strlower(L.TOKEN_UPDATE)] = function()
-		SJM_LinkedListUpdate()
-		SJM_GetNewMount()
+		T.LinkedListUpdate()
+		T.GetNewMount()
 		DEFAULT_CHAT_FRAME:AddMessage(L.CT_UPDATE)
 	end,
 	[strlower(L.TOKEN_CONFIG)] = {
 		[strlower(L.TOKEN_STATUS)] = function()
-			if (SJM_config.useBlacklist) then
+			if (SJMountDataPerChar.useBlacklist) then
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_STATUS1, L.STRING_ON))
 			else
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_STATUS1, L.STRING_OFF))
 			end
-			if (SJM_config.useWhitelist) then
+			if (SJMountDataPerChar.useWhitelist) then
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_STATUS2, L.STRING_ON))
 			else
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_STATUS2, L.STRING_OFF))
 			end
-			if (SJM_config.useFlyerWhenUnflyable) then
+			if (SJMountDataPerChar.useFlyerWhenUnflyable) then
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_STATUS3, L.STRING_ON))
 			else
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_STATUS3, L.STRING_OFF))
 			end
 		end,
 		["1"] = function()
-			if (not SJM_config.useBlacklist) then
-				SJM_config.useBlacklist = true
-				SJM_config.useWhitelist = false
+			if (not SJMountDataPerChar.useBlacklist) then
+				SJMountDataPerChar.useBlacklist = true
+				SJMountDataPerChar.useWhitelist = false
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_ENABLEDLIST, strlower(L.TOKEN_BLACKLIST), strlower(L.TOKEN_WHITELIST)))
 			else
-				SJM_config.useBlacklist = false
+				SJMountDataPerChar.useBlacklist = false
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_DISABLED, strlower(L.TOKEN_BLACKLIST)))
 			end
-			SJM_EnableOnUpdateScript(true)
+			T.EnableOnUpdateScript(true)
 		end,
 		["2"] = function()
-			if (not SJM_config.useWhitelist) then
-				SJM_config.useWhitelist = true
-				SJM_config.useBlacklist = false
+			if (not SJMountDataPerChar.useWhitelist) then
+				SJMountDataPerChar.useWhitelist = true
+				SJMountDataPerChar.useBlacklist = false
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_ENABLEDLIST, strlower(L.TOKEN_WHITELIST), strlower(L.TOKEN_BLACKLIST)))
 			else
-				SJM_config.useWhitelist = false
+				SJMountDataPerChar.useWhitelist = false
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_DISABLED, strlower(L.TOKEN_WHITELIST)))
 			end
-			SJM_EnableOnUpdateScript(true)
+			T.EnableOnUpdateScript(true)
 		end,
 		["3"] = function()
-			if (not SJM_config.useFlyerWhenUnflyable) then
-				SJM_config.useFlyerWhenUnflyable = true
+			if (not SJMountDataPerChar.useFlyerWhenUnflyable) then
+				SJMountDataPerChar.useFlyerWhenUnflyable = true
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_ENABLED, L.STRING_USEFLYERWHENUNFLYABLE))
 			else
-				SJM_config.useFlyerWhenUnflyable = false
+				SJMountDataPerChar.useFlyerWhenUnflyable = false
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_DISABLED, L.STRING_USEFLYERWHENUNFLYABLE))
 			end
 		end,
 		["debug"] = function()
-			if (not SJM_config.debug) then
-				SJM_config.debug = true
+			if (not SJMountDataPerChar.debug) then
+				SJMountDataPerChar.debug = true
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_ENABLED, L.STRING_DEBUGGINGMESSAGES))
 			else
-				SJM_config.debug = false
+				SJMountDataPerChar.debug = false
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_CONFIG_TOGGLE_DISABLED, L.STRING_DEBUGGINGMESSAGES))
 			end
 		end,
@@ -511,10 +479,10 @@ SJM_commandTable = {
 	},
 	[strlower(L.TOKEN_ADD)] = {
 		[strlower(L.TOKEN_BLACKLIST)] = function(arg1)
-			SJM_CT_AddMounts(arg1, 1, L.TOKEN_BLACKLIST)
+			T.AddMounts(arg1, 1, L.TOKEN_BLACKLIST)
 		end,
 		[strlower(L.TOKEN_WHITELIST)] = function(arg1)
-			SJM_CT_AddMounts(arg1, 1, L.TOKEN_WHITELIST)
+			T.AddMounts(arg1, 1, L.TOKEN_WHITELIST)
 		end,
 		[strlower(L.TOKEN_HELP)] = {
 			[strlower(L.TOKEN_BLACKLIST)] 	= format(L.CT_ADD_HELP_LIST, strlower(L.TOKEN_BLACKLIST), strlower(L.TOKEN_BLACKLIST)),
@@ -524,10 +492,10 @@ SJM_commandTable = {
 	},
 	[strlower(L.TOKEN_REMOVE)] = {
 		[strlower(L.TOKEN_BLACKLIST)] = function(arg1)
-			SJM_CT_AddMounts(arg1, 0, L.TOKEN_BLACKLIST)
+			T.AddMounts(arg1, 0, L.TOKEN_BLACKLIST)
 		end,
 		[strlower(L.TOKEN_WHITELIST)] = function(arg1)
-			SJM_CT_AddMounts(arg1, 0, L.TOKEN_WHITELIST)
+			T.AddMounts(arg1, 0, L.TOKEN_WHITELIST)
 		end,
 		[strlower(L.TOKEN_HELP)] = {
 			[strlower(L.TOKEN_BLACKLIST)] 	= format(L.CT_REMOVE_HELP_LIST, strlower(L.TOKEN_BLACKLIST), strlower(L.TOKEN_BLACKLIST)),
@@ -538,8 +506,8 @@ SJM_commandTable = {
 	[strlower(L.TOKEN_PRINT)] = {
 		[strlower(L.TOKEN_BLACKLIST)] = function()
 			DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_START, strlower(L.TOKEN_BLACKLIST)))
-			if (next(SJM_blacklist)) then
-				for v in pairs(SJM_blacklist) do
+			if (next(SJMountDataPerChar.blacklist)) then
+				for v in pairs(SJMountDataPerChar.blacklist) do
 					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_BLACKLIST), GetSpellLink(v)))
 				end
 			else
@@ -548,8 +516,8 @@ SJM_commandTable = {
 		end,
 		[strlower(L.TOKEN_WHITELIST)] = function()
 			DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_START, strlower(L.TOKEN_WHITELIST)))
-			if (next(SJM_whitelist)) then
-				for v in pairs(SJM_whitelist) do
+			if (next(SJMountDataPerChar.whitelist)) then
+				for v in pairs(SJMountDataPerChar.whitelist) do
 					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_WHITELIST), GetSpellLink(v)))
 				end
 			else
@@ -563,25 +531,25 @@ SJM_commandTable = {
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_START, strlower(L.TOKEN_LINKEDLIST)))
 			end
 			local hasEntries = false
-			if (next(SJM_linkedList[SJM_MOUNTLEVEL1].mountList)) then
+			if (next(T.linkedList[T.MOUNTLEVEL1].mountList)) then
 				hasEntries = true
-				for k, v in pairs(SJM_linkedList[SJM_MOUNTLEVEL1].mountList) do
+				for k, v in pairs(T.linkedList[T.MOUNTLEVEL1].mountList) do
 					if ((showAll == "true") or (v ~= false)) then
 						DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_LINKEDLIST), GetSpellLink(k)))
 					end
 				end
 			end
-			if (next(SJM_linkedList[SJM_MOUNTLEVEL2].mountList)) then
+			if (next(T.linkedList[T.MOUNTLEVEL2].mountList)) then
 				hasEntries = true
-				for k, v in pairs(SJM_linkedList[SJM_MOUNTLEVEL2].mountList) do
+				for k, v in pairs(T.linkedList[T.MOUNTLEVEL2].mountList) do
 					if ((showAll == "true") or (v ~= false)) then
 						DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_LINKEDLIST), GetSpellLink(k)))
 					end
 				end
 			end
-			if (next(SJM_linkedList[SJM_MOUNTLEVEL3].mountList)) then
+			if (next(T.linkedList[T.MOUNTLEVEL3].mountList)) then
 				hasEntries = true
-				for k, v in pairs(SJM_linkedList[SJM_MOUNTLEVEL3].mountList) do
+				for k, v in pairs(T.linkedList[T.MOUNTLEVEL3].mountList) do
 					if ((showAll == "true") or (v ~= false)) then
 						DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_LINKEDLIST), GetSpellLink(k)))
 					end
@@ -608,7 +576,7 @@ SJM_commandTable = {
 	}
 }
 
-function SJM_SlashCommand(msg, cmdTable)
+function T.SlashCommand(msg, cmdTable)
 	-- CHARACTER CLASS:
 	--     x : (where x is not one of the magic characters ^$()%.[]*+-?) represents the character x itself.
 	--     . : (a dot) represents all characters.
@@ -658,7 +626,7 @@ function SJM_SlashCommand(msg, cmdTable)
 	-- future use. Captures are numbered according to their left parentheses. As a special case, the empty capture ()
 	-- captures the current string position (a number). A pattern cannot contain embedded zeros. Use %z instead.
 
-	cmdTable = cmdTable or SJM_commandTable
+	cmdTable = cmdTable or T.commandTable
 
 	local command, parameters = string.split(" ", msg, 2)
 	local entry = cmdTable[strlower(command)]
@@ -667,10 +635,10 @@ function SJM_SlashCommand(msg, cmdTable)
 	if (which == "function") then
 		entry(parameters)
 	elseif (which == "table") then
-		SJM_SlashCommand(parameters or "", entry)
+		T.SlashCommand(parameters or "", entry)
 	elseif (which == "string") then
 		DEFAULT_CHAT_FRAME:AddMessage(entry)
 	elseif (msg ~= strlower(L.TOKEN_HELP)) then
-		SJM_SlashCommand(strlower(L.TOKEN_HELP), cmdTable)
+		T.SlashCommand(strlower(L.TOKEN_HELP), cmdTable)
 	end
 end

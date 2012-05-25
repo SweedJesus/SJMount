@@ -7,8 +7,9 @@ SJM_E = addonTable
 
 local T, C, L = unpack(select(2, ...))
 
-T.client = GetLocale()
+T.addonName = addonName
 T.version = GetAddOnMetadata("SJMount", "Version")
+T.client = GetLocale()
 
 local eventHandlers = {
 	-- ADDON_LOADED:
@@ -27,14 +28,15 @@ local eventHandlers = {
 	-- LEARNED_SPELL_IN_TAB:
 	-- Fires when a spell is learned inside of a given spell book tab, including when spells are learned upon changing the active talent spec.
 	["LEARNED_SPELL_IN_TAB"] = function(_frame, spellID, tabID)
-	--		if (tabID == 1) then
-	--		end
+		if (tabID == 1) then
+			T.RidingSkillsUpdate()
+		end
 	end,
 
 	-- COMPANION_LEARNED:
 	-- Fires when the player learns to summon a new mount or non-combat pet.
 	["COMPANION_LEARNED"] = function()
-		SJM_LinkedListUpdateCheck()
+		T.LinkedListUpdateCheck()
 	end,
 
 	-- UNIT_AURA:
@@ -47,13 +49,13 @@ local eventHandlers = {
 	-- ZONE_CHANGED:
 	-- Fires when the player moves between subzones or other named areas.
 	["ZONE_CHANGED"] = function()
-		SJM_CheckStates()
+		T.CheckStates()
 	end,
 
 	-- ZONE_CHANGED_NEW_AREA:
 	-- Fires when the player moves between major zones or enters/exits an instance.
 	["ZONE_CHANGED_NEW_AREA"] = function()
-		SJM_CheckStates()
+		T.CheckStates()
 	end,
 	-- UPDATE_WORLD_STATES:
 	-- Fires when information for world state UI elements changes or becomes available.
@@ -77,7 +79,7 @@ function SJM_OnLoad(frame)
 	SLASH_SJM1 = "/sjmount"
 	SLASH_SJM2 = "/sjm"
 	SlashCmdList["SJM"] = function(msg)
-		SJM_SlashCommand(msg)
+		T.SlashCommand(msg)
 	end
 end
 

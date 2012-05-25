@@ -21,7 +21,7 @@ L.TOKEN_STATUS 					= "Status"
 L.TOKEN_UPDATE 					= "Update"
 L.TOKEN_WHITELIST 				= "Whitelist"
 -- Macro strings
-L.MACRO_BODY 					= "/run SJM_MacroUseFunction()"
+L.MACRO_BODY 					= "/run SJMountUse()"
 L.MACRO_NAME 					= "SJMount Macro"
 L.MACRO_ICON 					= "SPELL_NATURE_SWIFTNESS"
 L.MACRO_TOOLTIPTEXT 			= "Left click to call a random mount, or to dismount while mounted. Right click to override safefly."

@@ -4,13 +4,22 @@ local T, C, L = unpack(select(2, ...))
 -- Localization for enUS and enGB
 -- -----------------------------------------------------------------------------
 
+-- Yellow 1 "ca9420"
+-- Yellow 2 "e7bf6a"
+
 -- Strings
 L.STRING_DEBUGGINGMESSAGES 		= "debugging messages"
 L.STRING_USEFLYERWHENUNFLYABLE 	= "use flying mounts when unflyable"
 L.STRING_OFF 					= "|cffff0000off|r"
 L.STRING_ON 					= "|cff00ff00on|r"
+-- Zone names
+L.WINTERGRASP					= "Wintergrasp"
+L.TOL_BARAD						= "Tol Barad"
+L.DALARAN						= "Dalaran"
+L.CIRCLE_OF_WILLS					= "Circle of Wills"
 -- Tokens
 L.TOKEN_ADD 					= "Add"
+L.TOKEN_ALL						= "All"
 L.TOKEN_BLACKLIST 				= "Blacklist"
 L.TOKEN_CONFIG 					= "Config"
 L.TOKEN_HELP 					= "Help"
@@ -54,6 +63,8 @@ L.CT_ADD_HELP					= "<|cffca9420SJMount|r> <|cffe7bf6aAdd|r> commands: blacklist
 -- Remove strings
 L.CT_REMOVE_LIST_SUCCESS		= "<|cffca9420SJMount|r> <|cffe7bf6aRemove|r> %s removed from %s"
 L.CT_REMOVE_LIST_FAILURE		= "<|cffca9420SJMount|r> <|cffe7bf6aRemove|r> failed to remove %s from %s (not a mount spell!)"
+L.CT_REMOVE_LIST_ALL			= "<|cffca9420SJMount|r> <|cffe7bf6aRemove|r> all entries removed from %s"
+L.CT_REMOVE_LIST_EMPTY 			= "<|cffca9420SJMount|r> <|cffe7bf6aRemove|r> %s empty!"
 L.CT_REMOVE_HELP_LIST			= "<|cffca9420SJMount|r> <|cffe7bf6aRemove|r> %s <spell link>: remove a learned mount from the %s by its spell link"
 L.CT_REMOVE_HELP				= "<|cffca9420SJMount|r> <|cffe7bf6aRemove|r> commands: blacklist <spell link>, whitelist <spell link>, help <command>"
 -- Print strings
@@ -61,7 +72,7 @@ L.CT_PRINT_LIST_START 			= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> printing %
 L.CT_PRINT_LIST_LOOP 			= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> %s %s"
 L.CT_PRINT_LIST_EMPTY 			= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> %s empty!"
 L.CT_PRINT_HELP_LIST			= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> %s: print all entries in the %s"
-L.CT_PRINT_HELP_LINKEDLIST		= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> linkedlist <print all>: print entries in the %s. Only prints entries that are not blacklisted/ that are whitelisted, or prints all if \'print all\' is \'true\'"
+L.CT_PRINT_HELP_LINKEDLIST		= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> linkedlist <all>: print entries in the %s. Only prints entries that are not blacklisted/ that are whitelisted, or prints all if <all> is \"all\""
 L.CT_PRINT_HELP					= "<|cffca9420SJMount|r> <|cffe7bf6aPrint|r> commands: blacklist, whitelist, linkedlist <print all>"
 -- Help strings
 L.CT_HELP_UPDATE				= "<|cffca9420SJMount|r> update: reloads the list of mounts to use in random mount selection"

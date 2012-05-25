@@ -1,17 +1,14 @@
 local T, C, L = unpack(select(2, ...))
 
--- -----------------------------------------------------------------------------
--- CONSTANTS
--- -----------------------------------------------------------------------------
+-- Yellow 1 "ca9420"
+-- Yellow 2 "e7bf6a"
 
-T.MOUNTLEVEL1 	= "GROUND"
-T.MOUNTLEVEL2 	= "FLYING"
-T.MOUNTLEVEL3	= "WATER"
-
-T.YELLOW1 = "ca9420"
-T.YELLOW2 = "e7bf6a"
-
-T.RIDINGSKILLS = {
+-- Mount level tags (comparison use)
+local MOUNTLEVEL1 	= "GROUND"
+local MOUNTLEVEL2 	= "FLYING"
+local MOUNTLEVEL3	= "WATER"
+-- Riding skill spell IDs
+local RIDINGSKILLS = {
 	APPRENTICE 			= 33388, -- Apprentice Riding 		[Regular Ground]
 	JOURNEYMAN 			= 33391, -- Journeyman Riding 		[Epic Ground]
 	EXPERT 				= 34090, -- Expert Riding 			[Regular Flying]
@@ -20,15 +17,13 @@ T.RIDINGSKILLS = {
 	NORTHREND_FLYING	= 54197, -- Cold Weather Flying 	[Northrend Flying]
 	AZEROTH_FLYING 		= 90267  -- Flight Master's License	[Azeroth Flying]
 }
-
-T.mountName = nil
-T.mountIndex = nil
-
+-- Regex patterns for blacklist/whitelist additions/removals
+local PATTERN_SPELLLINK  = "(|c%x+|H%a*:%d*|h%[[%a%s]*%]|h|r)"
+local PATTERN_SPELLID = "|c%x+|H%a*:(%d*)|h%[[%a%s]*%]|h|r"
+-- T.OnUpdate throttle and counter (20 second delay)
+local THROTTLE, counter = 20.0, 0
+-- State variables
 T.states = {
-	-- AddOn states
-	isInitialized 		= false,
-	isRequestingUpdate 	= false,
-	isUpdating 			= false,
 	-- Riding skill states
 	ridingSkills = {
 		apprentice 			= false, -- Apprentice Riding 		[Regular Ground]
@@ -39,26 +34,33 @@ T.states = {
 		northrend_flying 	= false, -- Cold Weather Flying 	[Northrend Flying]
 		azeroth_flying 		= false	 -- Flight Master's License	[Azeroth Flying]
 	},
+	-- AddOn states
+	isInitialized 		= false,
+	isRequestingUpdate 	= false,
+	isUpdating 			= false,
 	-- World states
-	canMount 			= false,
-	isFlyable 			= false
+	canMount 			= nil,
+	isFlyable 			= nil
 }
-
+-- Mount linked-list
 T.linkedList = {
-	[T.MOUNTLEVEL1] = { -- Linked-list for ground mounts
-		mountList 		= {},
-		mountListLength = 0,
-		randomList 		= {}
+	[MOUNTLEVEL1] = { -- Linked-list for ground mounts
+		mountList 				= {},
+		mountListLength_Total 	= 0,
+		mountListLength_Active 	= 0,
+		randomList 				= {}
 	},
-	[T.MOUNTLEVEL2] = { -- Linked-list for flying mounts
-		mountList 		= {},
-		mountListLength = 0,
-		randomList 		= {}
+	[MOUNTLEVEL2] = { -- Linked-list for flying mounts
+		mountList 				= {},
+		mountListLength_Total 	= 0,
+		mountListLength_Active 	= 0,
+		randomList 				= {}
 	},
-	[T.MOUNTLEVEL3] = { -- Linked-list for water mounts
-		mountList 		= {},
-		mountListLength = 0,
-		randomList 		= {}
+	[MOUNTLEVEL3] = { -- Linked-list for water mounts
+		mountList 				= {},
+		mountListLength_Total 	= 0,
+		mountListLength_Active 	= 0,
+		randomList 				= {}
 	}
 	-- IMPLEMENTATION:
 	-- SJMount_mountLL.ground.mountList : Indexes are ordered by individual mount Spell ID
@@ -79,15 +81,39 @@ T.linkedList = {
 	--			local randomCompanionIndex 	= SJMount_mountLL.ground.randomList[randomListIndex][2]
 	--			CallCompanion(MOUNT, randomCompanionIndex)
 }
-
+-- Name and index of the next mount to be called
+T.mountName, T.mountIndex = nil, nil
+-- Saved variables
 SJMountDataPerChar = {
-	["blacklist"] 				= {},
-	["whitelist"] 				= {},
+	["blacklist"] 				= {
+		-- [Spell ID], (Mounts to be blacklisted from random-mount selection)
+	},
+	["whitelist"] 				= {
+		-- [Spell ID], (Mounts to be whitelisted in random-mount selection)
+	},
 	["useBlacklist"] 			= false,
 	["useWhitelist"] 			= false,
 	["useFlyerWhenUnflyable"] 	= false,
 	["debug"] 					= false
 }
+
+--- In-game macro function
+-- If
+function SJMountUse()
+	if (T.mountIndex) then
+		if (IsMounted()) then
+			Dismount()
+		else
+			CallCompanion(MOUNT, T.mountIndex)
+			T.GetNewMount()
+		end
+	else
+		DEFAULT_CHAT_FRAME:AddMessage(L.ERROR_LINKEDLISTEMPTY)
+	end
+	if (SJMountDataPerChar.debug) then
+		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420SJMountUse|r] T.mountIndex:%s", tostring(T.mountIndex)))
+	end
+end
 
 --- Reimplementation of the World of Warcraft API function IsFlyableArea.
 -- Reimplementation of the World of Warcraft API function IsFlyableArea to account for world PvP areas Wintergrasp
@@ -99,36 +125,45 @@ function T.IsFlyableArea()
 		return false
 	else
 		local zoneText = GetRealZoneText()
-		if (zoneText == "Wintergrasp") then
+		if (zoneText == L.WINTERGRASP) then
 			local _, _, isActive = GetWorldPVPAreaInfo(1)
 			return (not isActive)
-		elseif (zoneText == "Tol Barad") then
+		elseif (zoneText == L.TOL_BARAD) then
 			local _, _, isActive = GetWorldPVPAreaInfo(2)
 			return (not isActive)
-		elseif (zoneText == "Dalaran") then
-			return not (GetSubZoneText() == "Circle of Wills")
+		elseif (zoneText == L.DALARAN) then
+			return not (GetSubZoneText() == L.CIRCLE_OF_WILLS)
 		else
 			return true
 		end
 	end
 end
 
-local throttle = 20
-local counter = 0
+---
+function T.MacroTextAdd(t, slot)
+	local name = GetActionText(slot)
+	if (name == L.MACRO_NAME) then
+		GameTooltip:AddLine(L.MACRO_TOOLTIPTEXT, 0.9, 0.8, 0.0, true)
+		GameTooltip:Show()
+	end
+end
+
 ---
 function T.OnUpdate(self, elapsed)
 	counter = counter + elapsed
-	if (counter >= throttle) then
+	if (counter >= THROTTLE) then
 		DEFAULT_CHAT_FRAME:AddMessage(L.UPDATE_REQUEST)
 		counter = 0
 	end
 end
 
 ---
-function T.EnableOnUpdateScript(useScript)
-	if (useScript) then
+-- @param arg1 true to enable, false to disable
+--
+function T.EnableOnUpdateScript(arg1)
+	if (arg1) then
 		if (not T.states.isRequestingUpdate) then
-			counter = throttle
+			counter = THROTTLE
 			T.states.isRequestingUpdate = true
 			SJM:SetScript("OnUpdate", T.OnUpdate)
 		end
@@ -136,43 +171,46 @@ function T.EnableOnUpdateScript(useScript)
 		T.states.isRequestingUpdate = false
 		SJM:SetScript("OnUpdate", nil)
 	end
+	if (SJMountDataPerChar.debug) then
+		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420EnableOnUpdateScript|r] arg1:%s", tostring(arg1)))
+	end
 end
 
 ---
-function T.RidingSkillsUpdate()
-	T.states.ridingSkills.apprentice 			= IsSpellKnown(T.RIDINGSKILLS.APPRENTICE)
-	T.states.ridingSkills.journeyman 			= IsSpellKnown(T.RIDINGSKILLS.JOURNEYMAN)
-	T.states.ridingSkills.expert				= IsSpellKnown(T.RIDINGSKILLS.EXPERT)
-	T.states.ridingSkills.artisan 			= IsSpellKnown(T.RIDINGSKILLS.ARTISAN)
-	T.states.ridingSkills.master 				= IsSpellKnown(T.RIDINGSKILLS.MASTER)
-	T.states.ridingSkills.northrend_flying 	= IsSpellKnown(T.RIDINGSKILLS.NORTHREND_FLYING)
-	T.states.ridingSkills.azeroth_flying 		= IsSpellKnown(T.RIDINGSKILLS.AZEROTH_FLYING)
-	if (IsSpellKnown(T.RIDINGSKILLS.MASTER)) then
+function T.RidingSkillStatesUpdate()
+	T.states.ridingSkills.apprentice 		= IsSpellKnown(RIDINGSKILLS.APPRENTICE)
+	T.states.ridingSkills.journeyman 		= IsSpellKnown(RIDINGSKILLS.JOURNEYMAN)
+	T.states.ridingSkills.expert			= IsSpellKnown(RIDINGSKILLS.EXPERT)
+	T.states.ridingSkills.artisan 			= IsSpellKnown(RIDINGSKILLS.ARTISAN)
+	T.states.ridingSkills.master 			= IsSpellKnown(RIDINGSKILLS.MASTER)
+	T.states.ridingSkills.northrend_flying 	= IsSpellKnown(RIDINGSKILLS.NORTHREND_FLYING)
+	T.states.ridingSkills.azeroth_flying 	= IsSpellKnown(RIDINGSKILLS.AZEROTH_FLYING)
+	if (IsSpellKnown(RIDINGSKILLS.MASTER)) then
 		T.states.ridingSkills.apprentice 	= true
 		T.states.ridingSkills.journeyman 	= true
 		T.states.ridingSkills.expert 		= true
-		T.states.ridingSkills.artisan 	= true
+		T.states.ridingSkills.artisan 		= true
 		T.states.ridingSkills.master 		= true
 	else
 		T.states.ridingSkills.master 		= false
-		if (IsSpellKnown(T.RIDINGSKILLS.ARTISAN)) then
+		if (IsSpellKnown(RIDINGSKILLS.ARTISAN)) then
 			T.states.ridingSkills.apprentice 	= true
 			T.states.ridingSkills.journeyman 	= true
 			T.states.ridingSkills.expert 		= true
-			T.states.ridingSkills.artisan 	= true
+			T.states.ridingSkills.artisan 		= true
 		else
 			T.states.ridingSkills.artisan 		= false
-			if (IsSpellKnown(T.RIDINGSKILLS.EXPERT)) then
+			if (IsSpellKnown(RIDINGSKILLS.EXPERT)) then
 				T.states.ridingSkills.apprentice 	= true
 				T.states.ridingSkills.journeyman 	= true
 				T.states.ridingSkills.expert 		= true
 			else
 				T.states.ridingSkills.expert 		= false
-				if (IsSpellKnown(T.RIDINGSKILLS.JOURNEYMAN)) then
+				if (IsSpellKnown(RIDINGSKILLS.JOURNEYMAN)) then
 					T.states.ridingSkills.apprentice 	= true
 					T.states.ridingSkills.journeyman 	= true
 				else
-					T.states.ridingSkills.apprentice 	= IsSpellKnown(T.RIDINGSKILLS.APPRENTICE)
+					T.states.ridingSkills.apprentice 	= IsSpellKnown(RIDINGSKILLS.APPRENTICE)
 					T.states.ridingSkills.journeyman 	= false
 				end
 			end
@@ -181,22 +219,48 @@ function T.RidingSkillsUpdate()
 end
 
 ---
-function T.LinkedListAddMount(spellID, mountLevel, mountSublevel, companionIndex, usemount)
-	if ((mountLevel == T.MOUNTLEVEL1) or (mountLevel == T.MOUNTLEVEL2) or (mountLevel == T.MOUNTLEVEL3)) then
-		if (usemount == true) then
-			local randomListIndex = (#T.linkedList[mountLevel].randomList + 1)
-			T.linkedList[mountLevel].mountList[spellID] = companionIndex
-			T.linkedList[mountLevel].randomList[randomListIndex] = T.linkedList[mountLevel].mountList[spellID]
-			if ((mountLevel == T.MOUNTLEVEL2) and SJMountDataPerChar.useFlyerWhenUnflyable) then
+function T.CheckStates()
+	local canmount1, isflyable1 = T.states.canMount, T.states.isFlyable
+	local canmount2, isflyable2 = not IsIndoors(), T.IsFlyableArea()
+	local getnewmount = false
+	if ((canmount1 ~= canmount2) or (isflyable1 ~= isflyable2)) then
+		T.states.canMount = canmount2
+		T.states.isFlyable = isflyable2
+		getnewmount = true
+	end
+	if getnewmount then T.GetNewMount() end
+	if (SJMountDataPerChar.debug) then
+		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420CheckStates|r] canmount1:%s canmount2:%s isflyable1:%s isflyable2:%s getnewmount:%s", tostring(canmount1), tostring(canmount2), tostring(isflyable1), tostring(isflyable2), tostring(getnewmount)))
+	end
+end
+
+---
+-- @param arg1 mount spell ID
+-- @param arg2 mount level token
+-- @param arg3 mount companion index
+-- @param arg4 if to be used in random mount selection
+--
+function T.LinkedListAddMount(arg1, arg2, arg3, arg4)
+	if ((arg2 == MOUNTLEVEL1) or (arg2 == MOUNTLEVEL2) or (arg2 == MOUNTLEVEL3)) then
+		if (arg4 == true) then
+			local randomListIndex = (#T.linkedList[arg2].randomList + 1)
+			T.linkedList[arg2].mountList[arg1] = arg3
+			T.linkedList[arg2].mountListLength_Active = T.linkedList[arg2].mountListLength_Active + 1
+			T.linkedList[arg2].randomList[randomListIndex] = T.linkedList[arg2].mountList[arg1]
+			if ((arg2 == MOUNTLEVEL2) and SJMountDataPerChar.useFlyerWhenUnflyable) then
 				randomListIndex = (#T.linkedList.GROUND.randomList + 1)
-				T.linkedList[T.MOUNTLEVEL1].mountList[spellID] = companionIndex
-				T.linkedList[T.MOUNTLEVEL1].mountListLength = T.linkedList[T.MOUNTLEVEL1].mountListLength + 1
-				T.linkedList[T.MOUNTLEVEL1].randomList[randomListIndex] = T.linkedList[T.MOUNTLEVEL1].mountList[spellID]
+				T.linkedList[MOUNTLEVEL1].mountList[arg1] = arg3
+				T.linkedList[MOUNTLEVEL1].mountListLength_Total = T.linkedList[MOUNTLEVEL1].mountListLength_Total + 1
+				T.linkedList[MOUNTLEVEL1].mountListLength_Active = T.linkedList[MOUNTLEVEL1].mountListLength_Active + 1
+				T.linkedList[MOUNTLEVEL1].randomList[randomListIndex] = T.linkedList[MOUNTLEVEL1].mountList[arg1]
 			end
 		else
-			T.linkedList[mountLevel].mountList[spellID] = false
+			T.linkedList[arg2].mountList[arg1] = false
 		end
-		T.linkedList[mountLevel].mountListLength = T.linkedList[mountLevel].mountListLength + 1
+		T.linkedList[arg2].mountListLength_Total = T.linkedList[arg2].mountListLength_Total + 1
+	end
+	if (SJMountDataPerChar.debug) then
+		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420LinkedListAddMount|r] arg1:%s arg2:%s arg3:%s arg4:%s", arg1, arg2, arg3, tostring(arg4)))
 	end
 end
 
@@ -205,7 +269,7 @@ function T.LinkedListUpdate()
 	T.states.isUpdating = true
 	-- Erase mount list length and random list entries
 	for k, v1 in pairs(T.linkedList) do
-		v1.mountListLength = 0
+		v1.mountListLength_Total, v1.mountListLength_Active = 0, 0
 		for k in ipairs(v1.randomList) do
 			v1.randomList[k] = nil
 		end
@@ -217,7 +281,7 @@ function T.LinkedListUpdate()
 	end
 
 	local numCompanions = GetNumCompanions(MOUNT)	-- Total number of companion mounts learned
-	local _, spellID, mountLevel, mountSublevel, usemount
+	local _, spellID, mountLevel, usemount
 
 	for mountIndex = 1, numCompanions do
 		_, _, spellID = GetCompanionInfo(MOUNT, mountIndex)
@@ -229,7 +293,7 @@ function T.LinkedListUpdate()
 		else
 			usemount = true
 		end
-		T.LinkedListAddMount(spellID, mountLevel, mountSublevel, mountIndex, usemount)
+		T.LinkedListAddMount(spellID, mountLevel, mountIndex, usemount)
 		-- Clear false blacklist and whitelist entries
 		SJMountDataPerChar.blacklist[spellID] = (SJMountDataPerChar.blacklist[spellID] or nil)
 		SJMountDataPerChar.whitelist[spellID] = (SJMountDataPerChar.whitelist[spellID] or nil)
@@ -241,20 +305,32 @@ end
 
 ---
 function T.LinkedListUpdateCheck()
-	T.EnableOnUpdateScript(not (T.linkedList.GROUND.mountListLength + T.linkedList.FLYING.mountListLength + T.linkedList.WATER.mountListLength) == GetNumCompanions(MOUNT))
+	local linkedlistlength_total = T.linkedList.GROUND.mountListLength_Total + T.linkedList.FLYING.mountListLength_Total + T.linkedList.WATER.mountListLength_Total
+	local enableonupdatescript = (not linkedlistlength_total == GetNumCompanions(MOUNT))
+	T.EnableOnUpdateScript(enableonupdatescript)
+	if (SJMountDataPerChar.debug) then
+		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420LinkedListUpdateCheck|r] linkedlistlength_total:%s enableonupdatescript:%s", linkedlistlength_total, tostring(enableonupdatescript)))
+	end
 end
 
 ---
-function T.GetRandomMountOfLevel(mountLevel)
-	if ((mountLevel == T.MOUNTLEVEL1) or (mountLevel == T.MOUNTLEVEL2) or (mountLevel == T.MOUNTLEVEL3)) then
-		if (next(T.linkedList[mountLevel].randomList)) then
-			local randomMountIndex = (random(#T.linkedList[mountLevel].randomList))
-			local mountIndex = T.linkedList[mountLevel].randomList[randomMountIndex]
-			local _mountSpellID, mountName = GetCompanionInfo(MOUNT, mountIndex)
-			return mountName, mountIndex
+-- @param arg1 mount level token
+--
+function T.GetRandomMountOfLevel(arg1)
+	if ((arg1 == MOUNTLEVEL1) or (arg1 == MOUNTLEVEL2) or (arg1 == MOUNTLEVEL3)) then
+		local mountName, mountIndex
+		if (next(T.linkedList[arg1].randomList)) then
+			local randomMountIndex, _mountSpellID
+			randomMountIndex = (random(#T.linkedList[arg1].randomList))
+			mountIndex = T.linkedList[arg1].randomList[randomMountIndex]
+			_mountSpellID, mountName = GetCompanionInfo(MOUNT, mountIndex)
 		else
 			DEFAULT_CHAT_FRAME:AddMessage(L.ERROR_LINKEDLISTEMPTY)
 		end
+		if (SJMountDataPerChar.debug) then
+			DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420GetRandomMountOfLevel|r] mountlevel:%s mountname:%s mountindex:%s", arg1, tostring(mountName), tostring(mountIndex)))
+		end
+		return mountName, mountIndex
 	else
 		DEFAULT_CHAT_FRAME:AddMessage(L.ERROR_INVALIDMOUNTLEVEL)
 	end
@@ -265,71 +341,30 @@ function T.GetNewMount()
 	if ((not T.states.isUpdating) and (not IsIndoors())) then
 		if (next(T.linkedList.FLYING.mountList)) then
 			if (IsFlyableArea()) then
-				T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL2)
+				T.mountName, T.mountIndex = T.GetRandomMountOfLevel(MOUNTLEVEL2)
 			else
 				if (SJMountDataPerChar.useFlyerWhenUnflyable) then
 					local numground = #T.linkedList.GROUND.randomList
 					local total = numground + #T.linkedList.FLYING.randomList
 					if (random(total) < numground) then
-						T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL1)
+						T.mountName, T.mountIndex = T.GetRandomMountOfLevel(MOUNTLEVEL1)
 					else
-						T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL2)
+						T.mountName, T.mountIndex = T.GetRandomMountOfLevel(MOUNTLEVEL2)
 					end
 				else
-					T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL1)
+					T.mountName, T.mountIndex = T.GetRandomMountOfLevel(MOUNTLEVEL1)
 				end
 			end
 		else
-			T.mountName, T.mountIndex = T.GetRandomMountOfLevel(T.MOUNTLEVEL1)
+			T.mountName, T.mountIndex = T.GetRandomMountOfLevel(MOUNTLEVEL1)
 		end
-		if (SJMountDataPerChar.debug) then
-			DEFAULT_CHAT_FRAME:AddMessage("Next mount: " .. T.mountName)
-		end
-	end
-end
-
----
-function SJMountUse()
-	if (not (IsFlying() and C.useSafefly) and IsMounted()) then
-		Dismount()
 	else
-		CallCompanion(MOUNT, T.mountIndex)
-		T.GetNewMount()
+		T.mountName, T.mountIndex = nil, nil
+	end
+	if (SJMountDataPerChar.debug) then
+		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420GetNewMount|r] T.mountName:%s T.mountIndex:%s", tostring(T.mountName), tostring(T.mountIndex)))
 	end
 end
-
----
-function T.CheckStates()
-	if ((T.states.canMount ~= IsIndoors()) or (T.states.isFlyable ~= T.IsFlyableArea())) then
-		T.states.canMount = not IsIndoors()
-		T.states.isFlyable = T.IsFlyableArea()
-		T.GetNewMount()
-	end
-end
-
--- -----------------------------------------------------------------------------
--- MACRO FUNCTIONS
--- -----------------------------------------------------------------------------
-
--- Custom macro tooltip code
-local saved_macros = {
-	-- ["Macro name"] = "Text to be displayed in the macro tooltip"
-	[L.MACRO_NAME] = L.MACRO_TOOLTIPTEXT
-}
-
----
-function SetAction(t, slot)
-	local name = GetActionText(slot)
-	if (name) then
-		local text = saved_macros[name]
-		GameTooltip:AddLine(text, 0.9, 0.8, 0.0, true)
-		GameTooltip:Show()
-	end
-end
-
-local key = "GameTooltip"
-local frame =  getglobal(key)
-hooksecurefunc(frame, "SetAction", SetAction)
 
 ---
 function T.WriteMacro()
@@ -355,25 +390,24 @@ end
 
 ---
 function T.Init()
-	T.RidingSkillsUpdate()
+	T.RidingSkillStatesUpdate()
 	if (T.states.ridingSkills.apprentice) then
 		T.LinkedListUpdate()
 		T.WriteMacro()
 		T.CheckStates()
+		-- Macro tooltip
+		hooksecurefunc(getglobal("GameTooltip"), "SetAction", T.MacroTextAdd)
 	else
 		DEFAULT_CHAT_FRAME:AddMessage(L.ERROR_NORIDINGSKILLKNOWN)
 		DisableAddOn(T.addonName)
 	end
 end
 
--- -----------------------------------------------------------------------------
--- SLASH COMMAND FUNCTIONS
--- -----------------------------------------------------------------------------
-
-local PATTERN_SPELLLINK  = "(|c%x+|H%a*:%d*|h%[[%a%s]*%]|h|r)"
-local PATTERN_SPELLID = "|c%x+|H%a*:(%d*)|h%[[%a%s]*%]|h|r"
-
 ---
+-- @param arg1 string to tokenize
+-- @param arg2 1 to add, 0 (or not 1) to remove
+-- @param arg3 blacklist or whitelist localized token
+--
 function T.AddMounts(arg1, arg2, arg3)
 	local list
 	if (arg3 == L.TOKEN_BLACKLIST) then
@@ -382,7 +416,7 @@ function T.AddMounts(arg1, arg2, arg3)
 		list = SJMountDataPerChar.whitelist
 	end
 	arg3 = strlower(arg3)
-	local enableOnUpdateScript
+	local enableonupdatescript
 	if (arg1) then
 		local add, spellID = ((arg2 == 1) or nil), nil
 		for spellLink in gmatch(arg1, PATTERN_SPELLLINK) do
@@ -394,11 +428,11 @@ function T.AddMounts(arg1, arg2, arg3)
 				else
 					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_REMOVE_LIST_SUCCESS, spellLink, arg3))
 				end
-				enableOnUpdateScript = true
+				enableonupdatescript = true
 			end
 		end
 	end
-	if (enableOnUpdateScript) then
+	if (enableonupdatescript) then
 		T.EnableOnUpdateScript(true)
 	else
 		T.SlashCommand(arg3, T.commandTable[strlower(L.TOKEN_ADD)][strlower(L.TOKEN_HELP)])
@@ -491,12 +525,36 @@ T.commandTable = {
 		}
 	},
 	[strlower(L.TOKEN_REMOVE)] = {
-		[strlower(L.TOKEN_BLACKLIST)] = function(arg1)
-			T.AddMounts(arg1, 0, L.TOKEN_BLACKLIST)
-		end,
-		[strlower(L.TOKEN_WHITELIST)] = function(arg1)
-			T.AddMounts(arg1, 0, L.TOKEN_WHITELIST)
-		end,
+		[strlower(L.TOKEN_BLACKLIST)] = {
+			[strlower(L.TOKEN_ALL)] = function()
+				if (next(SJMountDataPerChar.blacklist)) then
+					for v in pairs(SJMountDataPerChar.blacklist) do
+						SJMountDataPerChar.blacklist[v] = nil
+					end
+					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_REMOVE_LIST_ALL, strlower(L.TOKEN_BLACKLIST)))
+				else
+					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_REMOVE_LIST_EMPTY, strlower(L.TOKEN_BLACKLIST)))
+				end
+			end,
+			[strlower(L.TOKEN_HELP)] = function(arg1)
+				T.AddMounts(arg1, 0, L.TOKEN_BLACKLIST)
+			end
+		},
+		[strlower(L.TOKEN_WHITELIST)] = {
+			[strlower(L.TOKEN_ALL)] = function()
+				if (next(SJMountDataPerChar.whitelist)) then
+					for v in pairs(SJMountDataPerChar.whitelist) do
+						SJMountDataPerChar.whitelist[v] = nil
+					end
+					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_REMOVE_LIST_ALL, strlower(L.TOKEN_WHITELIST)))
+				else
+					DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_REMOVE_LIST_EMPTY, strlower(L.TOKEN_WHITELIST)))
+				end
+			end,
+			[strlower(L.TOKEN_HELP)] = function(arg1)
+				T.AddMounts(arg1, 0, L.TOKEN_WHITELIST)
+			end
+		},
 		[strlower(L.TOKEN_HELP)] = {
 			[strlower(L.TOKEN_BLACKLIST)] 	= format(L.CT_REMOVE_HELP_LIST, strlower(L.TOKEN_BLACKLIST), strlower(L.TOKEN_BLACKLIST)),
 			[strlower(L.TOKEN_WHITELIST)] 	= format(L.CT_REMOVE_HELP_LIST, strlower(L.TOKEN_WHITELIST), strlower(L.TOKEN_WHITELIST)),
@@ -525,32 +583,32 @@ T.commandTable = {
 			end
 		end,
 		[strlower(L.TOKEN_LINKEDLIST)] = function(showAll)
-			if (showAll == "true") then
+			if (showAll == "all") then
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_START, strlower(L.TOKEN_LINKEDLIST) .. " (all)"))
 			else
 				DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_START, strlower(L.TOKEN_LINKEDLIST)))
 			end
 			local hasEntries = false
-			if (next(T.linkedList[T.MOUNTLEVEL1].mountList)) then
+			if (next(T.linkedList[MOUNTLEVEL1].mountList)) then
 				hasEntries = true
-				for k, v in pairs(T.linkedList[T.MOUNTLEVEL1].mountList) do
-					if ((showAll == "true") or (v ~= false)) then
+				for k, v in pairs(T.linkedList[MOUNTLEVEL1].mountList) do
+					if ((showAll == "all") or (v ~= false)) then
 						DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_LINKEDLIST), GetSpellLink(k)))
 					end
 				end
 			end
-			if (next(T.linkedList[T.MOUNTLEVEL2].mountList)) then
+			if (next(T.linkedList[MOUNTLEVEL2].mountList)) then
 				hasEntries = true
-				for k, v in pairs(T.linkedList[T.MOUNTLEVEL2].mountList) do
-					if ((showAll == "true") or (v ~= false)) then
+				for k, v in pairs(T.linkedList[MOUNTLEVEL2].mountList) do
+					if ((showAll == "all") or (v ~= false)) then
 						DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_LINKEDLIST), GetSpellLink(k)))
 					end
 				end
 			end
-			if (next(T.linkedList[T.MOUNTLEVEL3].mountList)) then
+			if (next(T.linkedList[MOUNTLEVEL3].mountList)) then
 				hasEntries = true
-				for k, v in pairs(T.linkedList[T.MOUNTLEVEL3].mountList) do
-					if ((showAll == "true") or (v ~= false)) then
+				for k, v in pairs(T.linkedList[MOUNTLEVEL3].mountList) do
+					if ((showAll == "all") or (v ~= false)) then
 						DEFAULT_CHAT_FRAME:AddMessage(format(L.CT_PRINT_LIST_LOOP, strlower(L.TOKEN_LINKEDLIST), GetSpellLink(k)))
 					end
 				end
@@ -562,7 +620,7 @@ T.commandTable = {
 		[strlower(L.TOKEN_HELP)] = {
 			[strlower(L.TOKEN_BLACKLIST)] 	= format(L.CT_PRINT_HELP_LIST, strlower(L.TOKEN_BLACKLIST), strlower(L.TOKEN_BLACKLIST)),
 			[strlower(L.TOKEN_WHITELIST)] 	= format(L.CT_PRINT_HELP_LIST, strlower(L.TOKEN_WHITELIST), strlower(L.TOKEN_WHITELIST)),
-			[strlower(L.TOKEN_LINKEDLIST)] 	= format(L.CT_PRINT_HELP_LIST, strlower(L.TOKEN_LINKEDLIST), strlower(L.TOKEN_LINKEDLIST)),
+			[strlower(L.TOKEN_LINKEDLIST)] 	= format(L.CT_PRINT_HELP_LINKEDLIST, strlower(L.TOKEN_LINKEDLIST), strlower(L.TOKEN_LINKEDLIST)),
 			[strlower(L.TOKEN_HELP)] 		= L.CT_PRINT_HELP
 		}
 	},
@@ -576,7 +634,11 @@ T.commandTable = {
 	}
 }
 
-function T.SlashCommand(msg, cmdTable)
+---
+-- @param arg1 chat string to be tokenized
+-- @param arg2 command table to matched with a chat string token
+--
+function T.SlashCommand(arg1, arg2)
 	-- CHARACTER CLASS:
 	--     x : (where x is not one of the magic characters ^$()%.[]*+-?) represents the character x itself.
 	--     . : (a dot) represents all characters.
@@ -626,10 +688,10 @@ function T.SlashCommand(msg, cmdTable)
 	-- future use. Captures are numbered according to their left parentheses. As a special case, the empty capture ()
 	-- captures the current string position (a number). A pattern cannot contain embedded zeros. Use %z instead.
 
-	cmdTable = cmdTable or T.commandTable
+	arg2 = arg2 or T.commandTable
 
-	local command, parameters = string.split(" ", msg, 2)
-	local entry = cmdTable[strlower(command)]
+	local command, parameters = string.split(" ", arg1, 2)
+	local entry = arg2[strlower(command)]
 	local which = type(entry)
 
 	if (which == "function") then
@@ -638,7 +700,7 @@ function T.SlashCommand(msg, cmdTable)
 		T.SlashCommand(parameters or "", entry)
 	elseif (which == "string") then
 		DEFAULT_CHAT_FRAME:AddMessage(entry)
-	elseif (msg ~= strlower(L.TOKEN_HELP)) then
-		T.SlashCommand(strlower(L.TOKEN_HELP), cmdTable)
+	elseif (arg1 ~= strlower(L.TOKEN_HELP)) then
+		T.SlashCommand(strlower(L.TOKEN_HELP), arg2)
 	end
 end

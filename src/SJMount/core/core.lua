@@ -399,6 +399,7 @@ function T.Init()
 		hooksecurefunc(getglobal("GameTooltip"), "SetAction", T.MacroTextAdd)
 	else
 		DEFAULT_CHAT_FRAME:AddMessage(L.ERROR_NORIDINGSKILLKNOWN)
+		DEFAULT_CHAT_FRAME:AddMessage(L.ADDONDISABLE)
 		DisableAddOn(T.addonName)
 	end
 end

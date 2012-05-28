@@ -37,9 +37,10 @@ L.MACRO_TOOLTIPTEXT 			= "Left click to call a random mount, or to dismount whil
 -- Update request string
 L.UPDATE_REQUEST 				= "<|cffca9420SJMount|r> please enter |cffe7bf6a/sjm update|r to update!"
 -- Error strings
-L.ERROR_LINKEDLISTEMPTY 		= "<|cffca9420SJMount|r> |cffff0000ERROR|r linkedlist is empty. Check blacklists or whitelists."
+L.ERROR_LINKEDLISTEMPTY 		= "<|cffca9420SJMount|r> |cffff0000ERROR|r linkedlist is empty. Check blacklists or whitelists"
 L.ERROR_INVALIDMOUNTLEVEL 		= "<|cffca9420SJMount|r> |cffff0000ERROR|r not valid mount level (GROUND, FLYING, WATER)"
-L.ERROR_NORIDINGSKILLKNOWN 		= "<|cffca9420SJMount|r> |cffff0000ERROR|r no riding skill known."
+L.ERROR_NORIDINGSKILLKNOWN 		= "<|cffca9420SJMount|r> |cffff0000ERROR|r no riding skill known"
+L.ERROR_MOUNTNOTFOUND			= "<|cffca9420SJMount|r> |cffff0000ERROR|r could not find %s (spell ID %s) in staticmountlist.lua"
 L.ADDONDISABLE					= "<|cffca9420SJMount|r> disabling AddOn"
 -- Command table
 -- Update strings

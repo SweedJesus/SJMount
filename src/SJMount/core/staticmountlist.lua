@@ -8,6 +8,7 @@ local T, C, L = unpack(select(2, ...))
 T.staticMountList = {}
 
 -- Ground Mounts
+T.staticMountList[98204] = "GROUND" -- Amani Battle Bear
 T.staticMountList[43688] = "GROUND" -- Amani War Bear
 T.staticMountList[16056] = "GROUND" -- Ancient Frostsaber (feat of strength)
 T.staticMountList[66906] = "GROUND" -- Argent Charger

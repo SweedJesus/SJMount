@@ -241,26 +241,30 @@ end
 -- @param arg4 if to be used in random mount selection
 --
 function T.LinkedListAddMount(arg1, arg2, arg3, arg4)
-	if ((arg2 == MOUNTLEVEL1) or (arg2 == MOUNTLEVEL2) or (arg2 == MOUNTLEVEL3)) then
-		if (arg4 == true) then
-			local randomListIndex = (#T.linkedList[arg2].randomList + 1)
-			T.linkedList[arg2].mountList[arg1] = arg3
-			T.linkedList[arg2].mountListLength_Active = T.linkedList[arg2].mountListLength_Active + 1
-			T.linkedList[arg2].randomList[randomListIndex] = T.linkedList[arg2].mountList[arg1]
-			if ((arg2 == MOUNTLEVEL2) and SJMountDataPerChar.useFlyerWhenUnflyable) then
-				randomListIndex = (#T.linkedList.GROUND.randomList + 1)
-				T.linkedList[MOUNTLEVEL1].mountList[arg1] = arg3
-				T.linkedList[MOUNTLEVEL1].mountListLength_Total = T.linkedList[MOUNTLEVEL1].mountListLength_Total + 1
-				T.linkedList[MOUNTLEVEL1].mountListLength_Active = T.linkedList[MOUNTLEVEL1].mountListLength_Active + 1
-				T.linkedList[MOUNTLEVEL1].randomList[randomListIndex] = T.linkedList[MOUNTLEVEL1].mountList[arg1]
+	if (arg1 and arg2 and arg3 and arg4) then
+		if ((arg2 == MOUNTLEVEL1) or (arg2 == MOUNTLEVEL2) or (arg2 == MOUNTLEVEL3)) then
+			if (arg4 == true) then
+				local randomListIndex = (#T.linkedList[arg2].randomList + 1)
+				T.linkedList[arg2].mountList[arg1] = arg3
+				T.linkedList[arg2].mountListLength_Active = T.linkedList[arg2].mountListLength_Active + 1
+				T.linkedList[arg2].randomList[randomListIndex] = T.linkedList[arg2].mountList[arg1]
+				if ((arg2 == MOUNTLEVEL2) and SJMountDataPerChar.useFlyerWhenUnflyable) then
+					randomListIndex = (#T.linkedList.GROUND.randomList + 1)
+					T.linkedList[MOUNTLEVEL1].mountList[arg1] = arg3
+					T.linkedList[MOUNTLEVEL1].mountListLength_Total = T.linkedList[MOUNTLEVEL1].mountListLength_Total + 1
+					T.linkedList[MOUNTLEVEL1].mountListLength_Active = T.linkedList[MOUNTLEVEL1].mountListLength_Active + 1
+					T.linkedList[MOUNTLEVEL1].randomList[randomListIndex] = T.linkedList[MOUNTLEVEL1].mountList[arg1]
+				end
+			else
+				T.linkedList[arg2].mountList[arg1] = false
 			end
-		else
-			T.linkedList[arg2].mountList[arg1] = false
+			T.linkedList[arg2].mountListLength_Total = T.linkedList[arg2].mountListLength_Total + 1
 		end
-		T.linkedList[arg2].mountListLength_Total = T.linkedList[arg2].mountListLength_Total + 1
-	end
-	if (SJMountDataPerChar.debug) then
-		DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420LinkedListAddMount|r] arg1:%s arg2:%s arg3:%s arg4:%s", arg1, arg2, arg3, tostring(arg4)))
+		if (SJMountDataPerChar.debug) then
+			DEFAULT_CHAT_FRAME:AddMessage(format("[|cffca9420LinkedListAddMount|r] arg1:%s arg2:%s arg3:%s arg4:%s", arg1, arg2, arg3, tostring(arg4)))
+		end
+	else
+		DEFAULT_CHAT_FRAME:AddMessage(format(L.ERROR_MOUNTNOTFOUND, GetSpellLink(arg1), arg1))
 	end
 end
 

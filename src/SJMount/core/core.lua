@@ -1,5 +1,9 @@
 local T, C, L = unpack(select(2, ...))
 
+-- Todo Brainstorm alternative low profile list structures that encourage modularized components and sub-lists (zone specific)
+-- Todo Exclude area specific mounts (Qiraji)
+-- Todo Clean up initialization (fix first mount bugs)
+
 -- Yellow 1 "ca9420"
 -- Yellow 2 "e7bf6a"
 

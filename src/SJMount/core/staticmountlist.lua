@@ -25,7 +25,6 @@ T.staticMountList[22719] = "GROUND" -- Black Battlestrider
 T.staticMountList[35022] = "GROUND" -- Black Hawkstrider
 T.staticMountList[16055] = "GROUND" -- Black Nightsaber (feat of strength)
 T.staticMountList[59572] = "GROUND" -- Black Polar Bear
-T.staticMountList[26656] = "GROUND" -- Black Qiraji Battle Tank
 T.staticMountList[17461] = "GROUND" -- Black Ram
 T.staticMountList[64977] = "GROUND" -- Black Skeletal Horse
 T.staticMountList[470]   = "GROUND" -- Black Stallion
@@ -72,6 +71,7 @@ T.staticMountList[6653]  = "GROUND" -- Dire Wolf
 T.staticMountList[8395]  = "GROUND" -- Emerald Raptor
 T.staticMountList[63639] = "GROUND" -- Exodar Elekk (new Argent draeni)
 T.staticMountList[36702] = "GROUND" -- Fiery Warhorse
+T.staticMountList[97359] = "GROUND" -- Flameward Hippogryph
 T.staticMountList[63643] = "GROUND" -- Forsaken Warhorse (new Argent undead)
 T.staticMountList[84751] = "GROUND" -- Fossilized Raptor
 T.staticMountList[23509] = "GROUND" -- Frostwolf Howler
@@ -194,6 +194,7 @@ T.staticMountList[10796] = "GROUND" -- Turquoise Raptor
 T.staticMountList[92155] = "GROUND" -- Ultramarine Qiraji Battle Tank
 T.staticMountList[17454] = "GROUND" -- Unpainted Mechanostrider
 T.staticMountList[10799] = "GROUND" -- Violet Raptor
+T.staticMountList[64657] = "GROUND" -- White Kodo
 T.staticMountList[54753] = "GROUND" -- White Polar Bear
 T.staticMountList[6898]  = "GROUND" -- White Ram
 T.staticMountList[39319] = "GROUND" -- White Riding Talbuk
@@ -205,6 +206,12 @@ T.staticMountList[17229] = "GROUND" -- Winterspring Frostsaber
 T.staticMountList[59791] = "GROUND" -- Wooly Mammoth
 T.staticMountList[59793] = "GROUND" -- Wooly Mammoth
 T.staticMountList[74918] = "GROUND" -- Wooly White Rhino
+
+T.staticMountList[25953] = "GROUND" -- Blue Qiraji Battle Tank
+T.staticMountList[26656] = "GROUND" -- Black Qiraji Battle Tank
+T.staticMountList[26056] = "GROUND" -- Green Qiraji Battle Tank
+T.staticMountList[26055] = "GROUND" -- Yellow Qiraji Battle Tank
+T.staticMountList[26054] = "GROUND" -- Red Qiraji Battle Tank
 
 -- Flying Mounts
 T.staticMountList[72286] = "FLYING" -- Invincible (variable)

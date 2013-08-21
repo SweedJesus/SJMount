@@ -1,3 +1,8 @@
+------------------------
+-- OLD CODE
+-- REPLACED BY core2.lua
+------------------------
+
 <<<<<<< HEAD
 local T, C, L = unpack(select(2, ...))
 

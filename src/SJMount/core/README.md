@@ -1,2 +1,3 @@
-*core.lua is outdated*
-***core2.lua has replaced all that old code***
+# Pay attention only to core2.lua
+
+For historical reasons I keep core.lua around.
